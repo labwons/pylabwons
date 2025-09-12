@@ -3,9 +3,8 @@ from pylabwons.typesys import classproperty
 from datetime import datetime, timedelta
 from pytz import timezone
 from pykrx.stock import get_nearest_business_day_in_a_week as get_td
-from typing import Dict, Union
-import os, re, requests
-
+from typing import Dict
+import re, requests
 
 
 class DATETIME:
