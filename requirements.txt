@@ -1,0 +1,13 @@
+bs4
+kaleido
+numpy
+pandas
+pandas_datareader
+plotly
+pyarrow
+pykrx
+pytz
+requests
+scipy
+ta
+yfinance

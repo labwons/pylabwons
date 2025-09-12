@@ -1,0 +1,28 @@
+[project]
+name = "pylabwons"
+version = "1.0.0"
+description = "LABWONS PYTHON LIBRARY"
+authors = [{ name = "Noesis", email = "snob.labwons@gmail.com" }]
+requires-python = ">=3.10"
+dependencies = [
+    "bs4",
+    "kaleido",
+    "numpy",
+    "pandas",
+    "pandas_datareader",
+    "plotly",
+    "pyarrow",
+    "pykrx",
+    "pytz",
+    "requests",
+    "scipy",
+    "ta",
+    "yfinance"
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["pylabwons"]
