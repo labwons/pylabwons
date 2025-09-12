@@ -21,7 +21,7 @@ def get_ohlcv(ticker:str, **kwargs) -> DataFrame:
     _ohlcv.index.name = 'date'
     return _ohlcv.rename(columns=dict(시가='open', 고가='high', 저가='low', 종가='close', 거래량='volume'))
 
-def get_foreign_rate(ticker:str, **kwargs) -> DataFrame:
+def get_foreign_rates(ticker:str, **kwargs) -> DataFrame:
     return get_exhaustion_rates_of_foreign_investment_by_date(
         fromdate=kwargs['fromdate'] if 'fromdate' in kwargs else '19900101',
         todate=kwargs['todate'] if 'todate' in kwargs else DATETIME.TODAY,

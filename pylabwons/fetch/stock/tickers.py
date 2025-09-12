@@ -191,4 +191,7 @@ def get_sectors(date:str='', logger=None) -> DataFrame:
     data.loc[sc_edu, 'industryCode'], data.loc[sc_edu, 'industryName'] = 'WI332', '교육'
     data.loc[sc_sw, 'industryCode'], data.loc[sc_sw, 'industryName'] = 'WI601', '소프트웨어'
     data.loc[sc_it, 'industryCode'], data.loc[sc_it, 'industryName'] = 'WI602', 'IT서비스'
+    data['date'] = date
+
+    if logger: logger.info(f'END FETCH [SECTOR COMPOSITION] {len(data):,d} ITEMS: {perf_counter() - stime:.2f}')
     return data
