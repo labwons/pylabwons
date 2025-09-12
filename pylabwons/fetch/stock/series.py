@@ -1,6 +1,5 @@
 from pylabwons.util.tradingdate import DATETIME
 
-from datetime import timedelta
 from pandas import DataFrame
 from pykrx.stock import (
     get_market_ohlcv_by_date,
