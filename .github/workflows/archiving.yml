@@ -1,0 +1,77 @@
+name: ARCHIVING
+on:
+  # schedule:
+  #   - cron: '31 6 * * 1-5'  # KST 3:31 PM
+  #   - cron: '0 13 * * 1-5' # KST 10:00 PM
+  workflow_dispatch:
+  # push:
+  #   paths:
+  #     - '**/run.ipynb'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: run-workflow
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+          python-version: '3.11'
+          architecture: 'x64'
+          cache: 'pip'
+          # cache-dependency-path: 'requirements.txt'
+
+    - name: Install dependencies
+      run: |
+        pip install jupyter nbclient nbconvert
+        pip install -e .
+
+    - name: Build Artifacts
+      run: |   
+        jupyter nbconvert --to script notebook/archiving.ipynb
+        python notebook/acrhiving.py     
+        # jupyter nbconvert \
+        #   --to notebook \
+        #   --execute src/actions/run.ipynb \
+        #   --ExecutePreprocessor.timeout=900 \
+
+    - name: Commit and Push changes
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run : |
+        git config --global user.name 'SNOB ACTIONS'
+        git config --global user.email 'snob.labwons@gmail.com'
+        git add .
+        
+        TIMESTAMP=$(date)
+        if git diff --cached --quiet; then
+          echo "No changes to commit."
+        else
+          git commit -m "ROUTINE on $TIMESTAMP"
+          git push
+        fi
+
+    # - name: Setup Pages
+    #   uses: actions/configure-pages@v5
+
+    # - name: Upload Pages Artifact
+    #   uses: actions/upload-pages-artifact@v3
+    #   with:
+    #     path: docs
+
+    # - name: Deploy to GitHub Pages
+    #   uses: actions/deploy-pages@v4
+
