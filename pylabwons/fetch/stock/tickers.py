@@ -149,11 +149,7 @@ def get_sectors(date:str='', logger=None) -> DataFrame:
                 return _get_sector(code, date, retry-1)
 
         return DataFrame(resp.json()['list'])
-    
-
-    stime = perf_counter()
-    if logger: logger.info('RUN FETCH [SECTOR COMPOSITION]')
-    
+        
     date = date if date else DATETIME.WISE
     if not date:
         if logger: logger.error('- FAILED TO FETCH [SECTOR COMPOSITION]')
@@ -192,6 +188,4 @@ def get_sectors(date:str='', logger=None) -> DataFrame:
     data.loc[sc_sw, 'industryCode'], data.loc[sc_sw, 'industryName'] = 'WI601', '소프트웨어'
     data.loc[sc_it, 'industryCode'], data.loc[sc_it, 'industryName'] = 'WI602', 'IT서비스'
     data['date'] = date
-
-    if logger: logger.info(f'END FETCH [SECTOR COMPOSITION] {len(data):,d} ITEMS: {perf_counter() - stime:.2f}')
     return data

@@ -26,7 +26,7 @@ class _data(DataDictionary):
         for ticker in os.listdir(self.tickers):
             yield ticker.split('.')[0]
 # Alias
-PROJECT_DATA = DATA= _data()
+PROJECT_DATA = DATA = _data()
 
 if __name__ == "__main__":
     print(PROJECT_NAME)
