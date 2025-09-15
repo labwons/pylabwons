@@ -20,7 +20,7 @@ from .typesys import (
 from .util.tradingdate import DATETIME
 from .fetch.stock.series import (
     get_ohlcv,
-    get_foreign_rate
+    get_foreigner_rate_series
 )
 from .fetch.stock.tickers import (
     get_corporations,
