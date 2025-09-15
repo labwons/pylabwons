@@ -7,8 +7,11 @@ import os, time
 
 class Tickers:
 
-    def __init__(self, date:str=''):
-        self.log = Logging()
+    def __init__(self, date:str='', logger:Logging=None):
+        if logger and isinstance(logger, Logging):
+            self.log = logger
+        else:
+            self.log = None
 
         latest_date = DATETIME.TODAY
         base_date = date if date else DATETIME.TRADING
@@ -32,13 +35,17 @@ class Tickers:
     def fetch(self):
         for file, date, path, func in self.runners:
             stime = time.perf_counter()
-            self.log.info(f'RUN [ FETCH {file.upper()} ] ON {date}')
+            if self.log:
+                self.log.info(f'RUN [ FETCH {file.upper()} ] ON {date}')
+
             if file == 'sectors':
-                data = func(date, logger=self.log.logger)
+                data = func(date, logger=self.log)
             elif file == 'corporations':
                 data = func()
             else:
                 data = func(date)
             data.to_parquet(os.path.join(path, f'{file}.parquet'), engine='pyarrow')
-            self.log.info(f'END [ FETCH {file.upper()} ] {time.perf_counter() - stime:.2f}s')
+
+            if self.log:
+                self.log.info(f'END [ FETCH {file.upper()} ] {time.perf_counter() - stime:.2f}s')
         return
