@@ -42,7 +42,7 @@ jobs:
     - name: Build Artifacts
       run: |   
         jupyter nbconvert --to script notebook/archiving.ipynb
-        python notebook/acrhiving.py     
+        python notebook/archiving.py     
         # jupyter nbconvert \
         #   --to notebook \
         #   --execute src/actions/run.ipynb \
