@@ -39,7 +39,7 @@ jobs:
 
     - name: Build Artifacts
       run: |   
-        jupyter nbconvert --to script notebook/archiving.ipynb
+        jupyter nbconvert --to python notebook/archiving.ipynb
         python notebook/archiving.py
 
     - name: Commit and Push changes
