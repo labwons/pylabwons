@@ -1,4 +1,4 @@
-name: ARCHIVING
+name: Archiving
 on:
   # schedule:
   #   - cron: '31 6 * * 1-5'  # KST 3:31 PM
