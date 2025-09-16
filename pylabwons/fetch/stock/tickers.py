@@ -159,12 +159,13 @@ def get_sectors(date:str='', logger=None) -> DataFrame:
 
     objs, size = [], len(SECTOR_CODE) + 1
     for n, (code, name) in enumerate(SECTOR_CODE.items()):
-        if logger: logger.info(f"- SUCCEED IN FETCHING ({str(n + 1).zfill(2)}/{size}): {code} {name}")
         sector = _get_sector(code, date)
         if sector.empty:
             if logger: logger.error(f'- FAILED TO FETCH ({str(n + 1).zfill(2)}/{size}): {code} {name}')
             return DataFrame()
-        objs.append(sector)
+        else:
+            if logger: logger.info(f"- SUCCEED IN FETCHING ({str(n + 1).zfill(2)}/{size}): {code} {name}")
+            objs.append(sector)
 
     reits = DataFrame(data={'CMP_KOR': REITS_CODE.values(), 'CMP_CD': REITS_CODE.keys()})
     reits[['SEC_CD', 'IDX_CD', 'SEC_NM_KOR', 'IDX_NM_KOR']] = ['G99', 'WI999', '리츠', '리츠']

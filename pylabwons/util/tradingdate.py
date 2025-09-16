@@ -7,13 +7,22 @@ from typing import Dict
 import re, requests
 
 
-class DATETIME:
+class DateTime:
 
-    TIMEZONE = timezone('Asia/Seoul')
-    BASE = TODAY = datetime.now(TIMEZONE).strftime('%Y%m%d')
+    tz = timezone('Asia/Seoul')
+    BASE = TODAY = datetime.now(tz).strftime('%Y%m%d')
 
     @classproperty
-    def TRADING(cls) -> str:
+    def recent_trading(cls) -> str:
+        if not hasattr(cls, f'_td_{cls.TODAY}'):
+            try:
+                setattr(cls, f'_td_{cls.TODAY}', get_td(cls.TODAY))
+            except (KeyError, Exception):
+                return ''
+        return getattr(cls, f'_td_{cls.TODAY}')
+
+    @classproperty
+    def trading(cls) -> str:
         if not hasattr(cls, f'_td_{cls.BASE}'):
             try:
                 setattr(cls, f'_td_{cls.BASE}', get_td(cls.BASE))
@@ -22,7 +31,7 @@ class DATETIME:
         return getattr(cls, f'_td_{cls.BASE}')
 
     @classproperty
-    def WISE(cls) -> str:
+    def wise(cls) -> str:
         if cls.BASE == cls.TODAY:
             return cls.get_recent_wise_date()
         else:
@@ -47,18 +56,18 @@ class DATETIME:
 
     @classmethod
     def is_market_open(cls) -> bool:
-        return (cls.TODAY == cls.TRADING) and (900 <= int(datetime.now(cls.TIMEZONE).strftime("%H%M")) <= 1530)
+        return (cls.TODAY == cls.TRADING) and (900 <= int(datetime.now(cls.tz).strftime("%H%M")) <= 1530)
 
 
 if __name__ == "__main__":
-    print(DATETIME.BASE)
-    DATETIME.BASE = "20240115"
-    print(DATETIME.BASE)
-    print(DATETIME.TODAY)
-    # print(DATETIME.TRADING)
-    # print(DATETIME.WISE)
-    # print(DATETIME.get_previous_trading_dates())
-    # print(DATETIME.is_market_open())
-    # DATETIME.delta_today(7)
-    # print(DATETIME.TODAY)
-    # print(DATETIME.TRADING)
+    print(DateTime.BASE)
+    DateTime.BASE = "20240115"
+    print(DateTime.BASE)
+    print(DateTime.TODAY)
+    # print(DateTime.TRADING)
+    # print(DateTime.WISE)
+    # print(DateTime.get_previous_trading_dates())
+    # print(DateTime.is_market_open())
+    # DateTime.delta_today(7)
+    # print(DateTime.TODAY)
+    # print(DateTime.TRADING)

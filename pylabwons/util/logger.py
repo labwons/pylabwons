@@ -3,7 +3,7 @@ from datetime import datetime
 import logging, time, os
 
 
-class Logging(object):
+class Logger(object):
 
     @classmethod
     def kst(cls, *args):

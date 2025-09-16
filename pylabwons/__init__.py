@@ -1,15 +1,15 @@
 __all__ = [
-    "metaclass",
     "classproperty",
     "DataDictionary",
-    "dd",
-    "DD",
+    "DateTime",
+    "Logger",
+    "metaclass",
 
-    "DATETIME",
-
-    "get_ohlcv",
-    "get_foreigner_rate",
-    "get_corporations"
+    "HOST",
+    "GITHUB_EVENT",
+    "PROJECT_NAME",
+    "PROJECT_PATH",
+    "PROJECT_DATA"
 ]
 
 from .typesys import (
@@ -17,17 +17,20 @@ from .typesys import (
     classproperty,
     DataDictionary
 )
-from .util.tradingdate import DATETIME
-from .fetch.stock.series import (
-    get_ohlcv,
-    get_foreigner_rate_series
+from .util.tradingdate import DateTime
+from .util.path import (
+    PROJECT_NAME,
+    PROJECT_PATH,
+    PROJECT_DATA
 )
-from .fetch.stock.tickers import (
-    get_corporations,
-    get_foreigner_rate,
-    get_market_caps,
-    get_sectors
-)
+from .util.logger import Logger
+from os import environ
 
-# Alias
-dd = DD = DataDictionary
+
+GITHUB_EVENT = environ.get("GITHUB_EVENT_NAME", None)
+if any("COLAB" in e for e in environ):
+    HOST = "COLAB"
+elif GITHUB_EVENT:
+    HOST = "GITHUB"
+else:
+    HOST = "LOCAL"

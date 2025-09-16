@@ -44,7 +44,9 @@ class Tickers:
                 data = func()
             else:
                 data = func(date)
-            data.to_parquet(os.path.join(path, f'{file}.parquet'), engine='pyarrow')
+            
+            if not data.empty:
+                data.to_parquet(os.path.join(path, f'{file}.parquet'), engine='pyarrow')
 
             if self.log:
                 self.log.info(f'END [ FETCH {file.upper()} ] {time.perf_counter() - stime:.2f}s')

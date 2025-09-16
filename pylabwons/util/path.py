@@ -25,6 +25,11 @@ class _data(DataDictionary):
     def __iter__(self):
         for ticker in os.listdir(self.tickers):
             yield ticker.split('.')[0]
+
+    def create(self, file:str):
+        os.makedirs(os.path.dirname(file), exist_ok=True)
+        return file
+
 # Alias
 PROJECT_DATA = DATA = _data()
 
