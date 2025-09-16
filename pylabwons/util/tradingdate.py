@@ -58,6 +58,12 @@ class DateTime:
     def is_market_open(cls) -> bool:
         return (cls.today == cls.trading) and (900 <= int(datetime.now(cls.tz).strftime("%H%M")) <= 1530)
 
+    @classmethod
+    def use_closed_market(cls):
+        if cls.is_market_open():
+            cls.base = (datetime.now(cls.tz) - timedelta(1)).strftime('%Y%m%d')
+        return
+
 
 if __name__ == "__main__":
     print(DateTime.base)
