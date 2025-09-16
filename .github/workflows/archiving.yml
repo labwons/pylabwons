@@ -34,17 +34,13 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install jupyter nbclient nbconvert
+        pip install jupyter nbclient nbconvert ipykernel
         pip install -e .
 
     - name: Build Artifacts
       run: |   
         jupyter nbconvert --to script notebook/archiving.ipynb
-        python notebook/archiving.py     
-        # jupyter nbconvert \
-        #   --to notebook \
-        #   --execute src/actions/run.ipynb \
-        #   --ExecutePreprocessor.timeout=900 \
+        python notebook/archiving.py
 
     - name: Commit and Push changes
       env:
