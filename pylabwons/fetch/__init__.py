@@ -7,7 +7,7 @@ from .stock.tickers import (
 )
 
 # Alias
-ohlcvs = get_ohlcvs()
+ohlcvs = get_ohlcvs
 sectors = get_sectors
 foreigner_rates = get_foreigner_rates
 market_caps = get_market_caps
