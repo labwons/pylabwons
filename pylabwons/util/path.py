@@ -26,7 +26,8 @@ class _data(DataDictionary):
         for ticker in os.listdir(self.tickers):
             yield ticker.split('.')[0]
 
-    def create(self, file:str):
+    @classmethod
+    def create(cls, file:str):
         os.makedirs(os.path.dirname(file), exist_ok=True)
         return file
 

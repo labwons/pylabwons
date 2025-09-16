@@ -42,6 +42,10 @@ jobs:
         jupyter nbconvert --to python notebook/archiving.ipynb
         python notebook/archiving.py
 
+    - name: Clean up
+      run: |
+        rm notebook/archiving.py      
+
     - name: Commit and Push changes
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

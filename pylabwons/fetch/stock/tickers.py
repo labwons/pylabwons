@@ -1,9 +1,13 @@
-from pylabwons.util.tradingdate import DATETIME
+from pylabwons.util.tradingdate import DateTime
 
 from io import StringIO
 from pandas import DataFrame
-from pykrx.stock import get_market_cap_by_ticker, get_exhaustion_rates_of_foreign_investment
-from time import sleep, perf_counter
+from pykrx.stock import (
+    get_exhaustion_rates_of_foreign_investment,
+    get_market_cap_by_ticker,
+    get_market_ohlcv_by_ticker
+)
+from time import sleep
 from typing import Dict
 import pandas as pd
 import requests
@@ -30,9 +34,28 @@ def get_corporations() -> DataFrame:
         return DataFrame()
 
 
+# def get_market_basics(date:str='') -> DataFrame:
+#     if not date:
+#         date = DateTime.trading
+#
+#     try:
+#         price =
+#
+#         caps = get_market_cap_by_ticker(date=date, market='ALL')
+#         caps = caps.rename(columns={
+#             '종가':'close',
+#             '시가총액':'marketCap',
+#             '거래량':'volume',
+#             '거래대금':'amount',
+#             '상장주식수':'shares'
+#         })
+#         return basics
+#     except (KeyError, Exception):
+#         return DataFrame()
+
 def get_market_caps(date:str='') -> DataFrame:
     if not date:
-        date = DATETIME.TRADING
+        date = DateTime.trading
     try:
         caps = get_market_cap_by_ticker(date=date, market='ALL')
         caps.index.name = 'ticker'
@@ -50,7 +73,7 @@ def get_market_caps(date:str='') -> DataFrame:
 
 def get_foreigner_rate(date:str='') -> DataFrame:
     if not date:
-        date = DATETIME.TRADING
+        date = DateTime.trading
     try:
         data = get_exhaustion_rates_of_foreign_investment(date=date, market='ALL')
         data.index.name = 'ticker'
@@ -150,7 +173,7 @@ def get_sectors(date:str='', logger=None) -> DataFrame:
 
         return DataFrame(resp.json()['list'])
         
-    date = date if date else DATETIME.WISE
+    date = date if date else DateTime.wise
     if not date:
         if logger: logger.error('- FAILED TO FETCH [SECTOR COMPOSITION]')
         return DataFrame()

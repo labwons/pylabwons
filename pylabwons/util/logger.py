@@ -5,6 +5,9 @@ import logging, time, os
 
 class Logger(object):
 
+    _onoff = False
+    _timer = None
+
     @classmethod
     def kst(cls, *args):
         return time.localtime(time.mktime(time.gmtime(*args)) + 9 * 3600)
@@ -37,9 +40,11 @@ class Logger(object):
 
     def __getattr__(self, item):
         if hasattr(self.logger, item):
+            if not self._onoff:
+                return str
             return getattr(self.logger, item)
         try:
-            return super().__getattribute__(item)
+            return getattr(self, item)
         except AttributeError:
             raise AttributeError(f"'Logging' object has no attribute '{item}'")
 
@@ -50,3 +55,16 @@ class Logger(object):
             file = os.path.join(PROJECT_DATA.logs, f'{date}.log')
         with open(file, 'r', encoding="utf-8") as f:
             return f.read()
+
+    def on(self):
+        self._onoff = True
+        self._timer = time.perf_counter()
+
+    def off(self):
+        self._onoff = False
+
+    def runtime(self) -> str:
+        try:
+            return f'{time.perf_counter() - self._timer:.2f}s'
+        except (AttributeError, Exception):
+            raise RuntimeError('Logger is not started. Please call .on() method first.')

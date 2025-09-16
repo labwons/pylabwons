@@ -2,6 +2,7 @@ __all__ = [
     "classproperty",
     "DataDictionary",
     "DateTime",
+    "Fetch",
     "Logger",
     "metaclass",
 
@@ -17,14 +18,20 @@ from .typesys import (
     classproperty,
     DataDictionary
 )
-from .util.tradingdate import DateTime
+
+from .util.logger import Logger
 from .util.path import (
     PROJECT_NAME,
     PROJECT_PATH,
     PROJECT_DATA
 )
-from .util.logger import Logger
+from .util.tradingdate import DateTime
+
+from . import fetch as Fetch
+
+
 from os import environ
+
 
 
 GITHUB_EVENT = environ.get("GITHUB_EVENT_NAME", None)
