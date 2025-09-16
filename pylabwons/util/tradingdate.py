@@ -10,32 +10,32 @@ import re, requests
 class DateTime:
 
     tz = timezone('Asia/Seoul')
-    BASE = TODAY = datetime.now(tz).strftime('%Y%m%d')
+    base = today = datetime.now(tz).strftime('%Y%m%d')
 
     @classproperty
     def recent_trading(cls) -> str:
-        if not hasattr(cls, f'_td_{cls.TODAY}'):
+        if not hasattr(cls, f'_td_{cls.today}'):
             try:
-                setattr(cls, f'_td_{cls.TODAY}', get_td(cls.TODAY))
+                setattr(cls, f'_td_{cls.today}', get_td(cls.today))
             except (KeyError, Exception):
                 return ''
-        return getattr(cls, f'_td_{cls.TODAY}')
+        return getattr(cls, f'_td_{cls.today}')
 
     @classproperty
     def trading(cls) -> str:
-        if not hasattr(cls, f'_td_{cls.BASE}'):
+        if not hasattr(cls, f'_td_{cls.base}'):
             try:
-                setattr(cls, f'_td_{cls.BASE}', get_td(cls.BASE))
+                setattr(cls, f'_td_{cls.base}', get_td(cls.base))
             except (KeyError, Exception):
                 return ''
-        return getattr(cls, f'_td_{cls.BASE}')
+        return getattr(cls, f'_td_{cls.base}')
 
     @classproperty
     def wise(cls) -> str:
-        if cls.BASE == cls.TODAY:
+        if cls.base == cls.today:
             return cls.get_recent_wise_date()
         else:
-            return cls.TRADING
+            return cls.trading
 
     @classmethod
     def get_recent_wise_date(cls) -> str:
@@ -51,23 +51,22 @@ class DateTime:
     def get_previous_trading_dates(cls, *previous_days) -> Dict[str, str]:
         if not previous_days:
             previous_days = [1, 7, 14, 30, 61, 92, 183, 365]
-        td = datetime.strptime(cls.TRADING, '%Y%m%d')
+        td = datetime.strptime(cls.trading, '%Y%m%d')
         return {f'D-{n}': get_td((td - timedelta(n)).strftime("%Y%m%d")) for n in previous_days}
 
     @classmethod
     def is_market_open(cls) -> bool:
-        return (cls.TODAY == cls.TRADING) and (900 <= int(datetime.now(cls.tz).strftime("%H%M")) <= 1530)
+        return (cls.today == cls.trading) and (900 <= int(datetime.now(cls.tz).strftime("%H%M")) <= 1530)
 
 
 if __name__ == "__main__":
-    print(DateTime.BASE)
-    DateTime.BASE = "20240115"
-    print(DateTime.BASE)
-    print(DateTime.TODAY)
+    print(DateTime.base)
+    DateTime.base = "20240115"
+    print(DateTime.base)
+    print(DateTime.today)
     # print(DateTime.TRADING)
     # print(DateTime.WISE)
     # print(DateTime.get_previous_trading_dates())
     # print(DateTime.is_market_open())
-    # DateTime.delta_today(7)
-    # print(DateTime.TODAY)
-    # print(DateTime.TRADING)
+    # print(DateTime.today)
+    # print(DateTime.trading)

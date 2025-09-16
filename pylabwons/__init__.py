@@ -5,6 +5,7 @@ __all__ = [
     "Fetch",
     "Logger",
     "metaclass",
+    "Prep",
 
     "HOST",
     "GITHUB_EVENT",
@@ -27,11 +28,11 @@ from .util.path import (
 )
 from .util.tradingdate import DateTime
 
+from .util import prep as Prep
+
 from . import fetch as Fetch
 
-
 from os import environ
-
 
 
 GITHUB_EVENT = environ.get("GITHUB_EVENT_NAME", None)

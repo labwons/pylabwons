@@ -48,7 +48,7 @@ def get_corporations() -> DataFrame:
     except (KeyError, Exception):
         return DataFrame()
 
-def get_ohlcv(date:str='') -> DataFrame:
+def get_ohlcvs(date:str='') -> DataFrame:
     if not date:
         date = DateTime.trading
     try:
@@ -59,7 +59,7 @@ def get_ohlcv(date:str='') -> DataFrame:
     except (KeyError, Exception):
         return DataFrame()
 
-def get_market_cap(date:str='') -> DataFrame:
+def get_market_caps(date:str='') -> DataFrame:
     if not date:
         date = DateTime.trading
     try:
@@ -70,7 +70,7 @@ def get_market_cap(date:str='') -> DataFrame:
     except (KeyError, Exception):
         return DataFrame()
 
-def get_foreigner_rate(date:str='') -> DataFrame:
+def get_foreigner_rates(date:str='') -> DataFrame:
     if not date:
         date = DateTime.trading
     try:
