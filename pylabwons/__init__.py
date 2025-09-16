@@ -6,6 +6,7 @@ __all__ = [
     "Logger",
     "metaclass",
     "Prep",
+    "Tickers",
 
     "HOST",
     "GITHUB_EVENT",
@@ -31,6 +32,8 @@ from .util.tradingdate import DateTime
 from .util import prep as Prep
 
 from . import fetch as Fetch
+
+from .read.tickers import Tickers
 
 from os import environ
 

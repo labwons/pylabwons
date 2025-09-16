@@ -24,6 +24,7 @@ RENAMER = {
     '고가': 'high',
     '저가': 'low',
     '종가': 'close',
+    '등락률': 'changeRate',
     '시가총액': 'marketCap',
     '거래량': 'volume',
     '거래대금': 'amount',
