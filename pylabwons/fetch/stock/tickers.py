@@ -54,6 +54,7 @@ def get_ohlcvs(date:str='') -> DataFrame:
         date = TradingDate.recent
     try:
         data = get_market_ohlcv_by_ticker(date=date, market='ALL')
+        data = data.drop(columns=['등락률'])
         data.index.name = 'ticker'
         data = data.rename(columns={key:val for key, val in RENAMER.items() if key in data})
         return data
@@ -203,5 +204,5 @@ def get_sectors(date:str='', logger=None) -> DataFrame:
     data.loc[sc_edu, 'industryCode'], data.loc[sc_edu, 'industryName'] = 'WI332', '교육'
     data.loc[sc_sw, 'industryCode'], data.loc[sc_sw, 'industryName'] = 'WI601', '소프트웨어'
     data.loc[sc_it, 'industryCode'], data.loc[sc_it, 'industryName'] = 'WI602', 'IT서비스'
-    data['date'] = date
+    # data['date'] = date
     return data

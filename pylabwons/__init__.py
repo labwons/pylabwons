@@ -1,12 +1,12 @@
 __all__ = [
     "classproperty",
     "DataDictionary",
-    "DateTime",
     "Fetch",
     "Logger",
     "metaclass",
     "Prep",
     "Tickers",
+    "TradingDate",
 
     "HOST",
     "GITHUB_EVENT",
@@ -27,9 +27,9 @@ from .util.path import (
     PROJECT_PATH,
     PROJECT_DATA
 )
-from .util.tradingdate import DateTime
+from .util.tradingdate import TradingDate
 
-from .util import prep as Prep
+from .util.prep import Prep
 
 from . import fetch as Fetch
 

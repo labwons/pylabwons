@@ -1,17 +1,23 @@
-from pylabwons.typesys import classproperty
-from pylabwons.util.path import PROJECT_DATA
-from pylabwons.util.tradingdate import DateTime
+from pylabwons.typesys import classproperty, metaclass
+from pylabwons.util.path import ARCHIVE
+from pylabwons.util.tradingdate import TradingDate
+from pylabwons.util.prep import Prep
 from pandas import DataFrame
 import pandas as pd
+import os
 
 
-class Tickers:
+class Tickers(DataFrame, metaclass=metaclass):
 
-    base_date:str = DateTime.trading
+    _str_ = _src_ = os.path.join(ARCHIVE.tickers, 'tickers.parquet')
+
+    def __init__(self):
+        super().__init__(pd.read_parquet(self._src_, engine='pyarrow'))
+        return
 
     @classmethod
     def read(cls, name:str, date:str="") -> DataFrame:
-        files = PROJECT_DATA.files.copy()
+        files = ARCHIVE.files.copy()
         files = files[files['name'] == name]
         files['date'] = files['date'].astype(int)
         files = files.sort_values(by=['date'], ascending=False)
@@ -23,15 +29,31 @@ class Tickers:
 
     @classproperty
     def corporations(cls) -> DataFrame:
-        return cls.read("corporations", cls.base_date)
+        return cls.read("corporations")
 
     @classproperty
     def sectors(cls) -> DataFrame:
-        return cls.read("sectors", cls.base_date)
+        return cls.read("sectors")
 
     @classproperty
     def basics(cls) -> DataFrame:
-        return cls.read("marketbasic", cls.base_date)
+        return cls.read("marketbasic")
+
+    @property
+    def ones(self) -> DataFrame:
+        filtered = self[self['market'] != 'KONEX'].copy()
+        filtered = filtered[~(filtered['industryCode'].isna() | filtered['sectorCode'].isna())]
+        filtered = filtered[filtered['marketCap'] >= 5e+10]
+        filtered = filtered[filtered['amount'] >= 2e+8]
+        return filtered
+
+    def rebase(self):
+        data = Prep.smart_concat(self.basics, self.corporations, self.sectors, axis=1)
+        data = data[~data['name'].isna()]
+        data.to_parquet(self._src_, engine='pyarrow')
+        super().__init__(data)
+        return
+
 
 
 
@@ -39,6 +61,6 @@ if __name__ == "__main__":
     from pandas import set_option
     set_option('display.expand_frame_repr', False)
 
-    print(Tickers.corporations)
-    print(Tickers.sectors)
-    print(Tickers.basics)
+    tickers = Tickers()
+    # print(tickers)
+    print(tickers.ones)

@@ -51,7 +51,7 @@ class _data(DataDictionary):
 
 
 # Alias
-PROJECT_DATA = DATA = _data()
+ARCHIVE = DATA = PROJECT_DATA = _data()
 
 
 if __name__ == "__main__":

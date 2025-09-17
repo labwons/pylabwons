@@ -1,4 +1,4 @@
-from pylabwons.util.tradingdate import DATETIME
+from pylabwons.util.tradingdate import TradingDate
 
 from pandas import DataFrame
 from pykrx.stock import (
@@ -10,7 +10,7 @@ from pykrx.stock import (
 def get_ohlcv(ticker:str, **kwargs) -> DataFrame:
     _ohlcv = get_market_ohlcv_by_date(
         fromdate=kwargs['fromdate'] if 'fromdate' in kwargs else '19900101',
-        todate=kwargs['todate'] if 'todate' in kwargs else DATETIME.TODAY,
+        todate=kwargs['todate'] if 'todate' in kwargs else TradingDate.recent_closed,
         ticker=ticker,
         freq=kwargs['freq'] if 'freq' in kwargs else 'd'
     )
@@ -24,7 +24,7 @@ def get_ohlcv(ticker:str, **kwargs) -> DataFrame:
 def get_foreigner_rate_series(ticker:str, **kwargs) -> DataFrame:
     return get_exhaustion_rates_of_foreign_investment_by_date(
         fromdate=kwargs['fromdate'] if 'fromdate' in kwargs else '19900101',
-        todate=kwargs['todate'] if 'todate' in kwargs else DATETIME.TODAY,
+        todate=kwargs['todate'] if 'todate' in kwargs else TradingDate.recent_closed,
         ticker=ticker,
     )
 
