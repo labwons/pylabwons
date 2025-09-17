@@ -41,7 +41,6 @@ class Tickers(DataFrame, metaclass=metaclass):
 
     @property
     def ones(self) -> DataFrame:
-        filtered = self[self['market'] != 'KONEX'].copy()
         filtered = filtered[~(filtered['industryCode'].isna() | filtered['sectorCode'].isna())]
         filtered = filtered[filtered['marketCap'] >= 5e+10]
         filtered = filtered[filtered['amount'] >= 2e+8]
@@ -49,6 +48,7 @@ class Tickers(DataFrame, metaclass=metaclass):
 
     def rebase(self):
         data = Prep.smart_concat(self.basics, self.corporations, self.sectors, axis=1)
+        data = data[data['market'] != 'KONEX'].copy()
         data = data[~data['name'].isna()]
         data = data[~(data['name'].str.contains('스팩') & data['name'].str.contains('호'))]
         data.to_parquet(self._src_, engine='pyarrow')
