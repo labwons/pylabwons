@@ -128,27 +128,27 @@ def get_sectors(date:str='', logger=None) -> DataFrame:
         'IDX_NM_KOR': 'industryName',
     }
 
-    REITS_CODE:Dict[str, str] = {
-        "088980": "맥쿼리인프라",
-        "395400": "SK리츠",
-        "365550": "ESR켄달스퀘어리츠",
-        "330590": "롯데리츠",
-        "348950": "제이알글로벌리츠",
-        "293940": "신한알파리츠",
-        "432320": "KB스타리츠",
-        "094800": "맵스리얼티1",
-        "357120": "코람코라이프인프라리츠",
-        "448730": "삼성FN리츠",
-        "451800": "한화리츠",
-        "088260": "이리츠코크렙",
-        "334890": "이지스밸류리츠",
-        "377190": "디앤디플랫폼리츠",
-        "404990": "신한서부티엔디리츠",
-        "417310": "코람코더원리츠",
-        "400760": "NH올원리츠",
-        "350520": "이지스레지던스리츠",
-        "415640": "KB발해인프라",
-    }
+    # REITS_CODE:Dict[str, str] = {
+    #     "088980": "맥쿼리인프라",
+    #     "395400": "SK리츠",
+    #     "365550": "ESR켄달스퀘어리츠",
+    #     "330590": "롯데리츠",
+    #     "348950": "제이알글로벌리츠",
+    #     "293940": "신한알파리츠",
+    #     "432320": "KB스타리츠",
+    #     "094800": "맵스리얼티1",
+    #     "357120": "코람코라이프인프라리츠",
+    #     "448730": "삼성FN리츠",
+    #     "451800": "한화리츠",
+    #     "088260": "이리츠코크렙",
+    #     "334890": "이지스밸류리츠",
+    #     "377190": "디앤디플랫폼리츠",
+    #     "404990": "신한서부티엔디리츠",
+    #     "417310": "코람코더원리츠",
+    #     "400760": "NH올원리츠",
+    #     "350520": "이지스레지던스리츠",
+    #     "415640": "KB발해인프라",
+    # }
 
     def _get_sector(code:str, date:str, retry:int=5) -> DataFrame:
         try:
@@ -173,7 +173,7 @@ def get_sectors(date:str='', logger=None) -> DataFrame:
         if logger: logger.error('- FAILED TO FETCH [SECTOR COMPOSITION]')
         return DataFrame()
 
-    objs, size = [], len(SECTOR_CODE) + 1
+    objs, size = [], len(SECTOR_CODE)
     for n, (code, name) in enumerate(SECTOR_CODE.items()):
         sector = _get_sector(code, date)
         if sector.empty:
@@ -183,10 +183,10 @@ def get_sectors(date:str='', logger=None) -> DataFrame:
             if logger: logger.info(f"- SUCCEED IN FETCHING ({str(n + 1).zfill(2)}/{size}): {code} {name}")
             objs.append(sector)
 
-    reits = DataFrame(data={'CMP_KOR': REITS_CODE.values(), 'CMP_CD': REITS_CODE.keys()})
-    reits[['SEC_CD', 'IDX_CD', 'SEC_NM_KOR', 'IDX_NM_KOR']] = ['G99', 'WI999', '리츠', '리츠']
-    objs.append(reits)
-    if logger: logger.info(f"- SUCCEED IN FETCHING ({size}/{size}): WI999 리츠")
+    # reits = DataFrame(data={'CMP_KOR': REITS_CODE.values(), 'CMP_CD': REITS_CODE.keys()})
+    # reits[['SEC_CD', 'IDX_CD', 'SEC_NM_KOR', 'IDX_NM_KOR']] = ['G99', 'WI999', '리츠', '리츠']
+    # objs.append(reits)
+    # if logger: logger.info(f"- SUCCEED IN FETCHING ({size}/{size}): WI999 리츠")
 
     data = pd.concat(objs, axis=0, ignore_index=True)
 
