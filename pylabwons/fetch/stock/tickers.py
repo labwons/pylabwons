@@ -1,4 +1,4 @@
-from pylabwons.util.tradingdate import DateTime
+from pylabwons.util.tradingdate import TradingDate
 
 from io import StringIO
 from pandas import DataFrame
@@ -51,7 +51,7 @@ def get_corporations() -> DataFrame:
 
 def get_ohlcvs(date:str='') -> DataFrame:
     if not date:
-        date = DateTime.trading
+        date = TradingDate.recent
     try:
         data = get_market_ohlcv_by_ticker(date=date, market='ALL')
         data.index.name = 'ticker'
@@ -62,7 +62,7 @@ def get_ohlcvs(date:str='') -> DataFrame:
 
 def get_market_caps(date:str='') -> DataFrame:
     if not date:
-        date = DateTime.trading
+        date = TradingDate.recent
     try:
         data = get_market_cap_by_ticker(date=date, market='ALL')
         data.index.name = 'ticker'
@@ -73,7 +73,7 @@ def get_market_caps(date:str='') -> DataFrame:
 
 def get_foreigner_rates(date:str='') -> DataFrame:
     if not date:
-        date = DateTime.trading
+        date = TradingDate.recent
     try:
         data = get_exhaustion_rates_of_foreign_investment(date=date, market='ALL')
         data.index.name = 'ticker'
@@ -167,12 +167,10 @@ def get_sectors(date:str='', logger=None) -> DataFrame:
 
         return DataFrame(resp.json()['list'])
         
-    date = date if date else DateTime.wise
+    date = date if date else TradingDate.wise
     if not date:
         if logger: logger.error('- FAILED TO FETCH [SECTOR COMPOSITION]')
         return DataFrame()
-    else:
-        if logger: logger.info(f'- RESOURCE DATE: {date}')
 
     objs, size = [], len(SECTOR_CODE) + 1
     for n, (code, name) in enumerate(SECTOR_CODE.items()):

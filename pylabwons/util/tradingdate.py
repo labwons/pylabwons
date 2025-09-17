@@ -7,13 +7,13 @@ from typing import Dict
 import re, requests
 
 
-class DateTime:
+class TradingDate:
 
     tz = timezone('Asia/Seoul')
-    base = today = datetime.now(tz).strftime('%Y%m%d')
+    today = datetime.now(tz).strftime('%Y%m%d')
 
     @classproperty
-    def recent_trading(cls) -> str:
+    def recent(cls) -> str:
         if not hasattr(cls, f'_td_{cls.today}'):
             try:
                 setattr(cls, f'_td_{cls.today}', get_td(cls.today))
@@ -22,17 +22,20 @@ class DateTime:
         return getattr(cls, f'_td_{cls.today}')
 
     @classproperty
-    def trading(cls) -> str:
-        if not hasattr(cls, f'_td_{cls.base}'):
+    def recent_closed(cls) -> str:
+        base = cls.today
+        if cls.is_market_open():
+            base = (datetime.now(cls.tz) - timedelta(1)).strftime("%Y%m%d")
+        if not hasattr(cls, f'_td_{base}'):
             try:
-                setattr(cls, f'_td_{cls.base}', get_td(cls.base))
+                setattr(cls, f'_td_{base}', get_td(base))
             except (KeyError, Exception):
                 return ''
-        return getattr(cls, f'_td_{cls.base}')
+        return getattr(cls, f'_td_{base}')
 
     @classproperty
     def wise(cls) -> str:
-        if cls.base == cls.today:
+        if cls.is_market_open():
             return cls.get_recent_wise_date()
         else:
             return cls.trading
@@ -56,23 +59,21 @@ class DateTime:
 
     @classmethod
     def is_market_open(cls) -> bool:
-        return (cls.today == cls.trading) and (900 <= int(datetime.now(cls.tz).strftime("%H%M")) <= 1530)
+        return (cls.today == cls.recent) and (900 <= int(datetime.now(cls.tz).strftime("%H%M")) <= 1530)
 
     @classmethod
-    def use_closed_market(cls):
-        if cls.is_market_open():
-            cls.base = (datetime.now(cls.tz) - timedelta(1)).strftime('%Y%m%d')
-        return
+    def find(cls, date:str) -> str:
+        return get_td(date)
 
 
 if __name__ == "__main__":
-    print(DateTime.base)
-    DateTime.base = "20240115"
-    print(DateTime.base)
-    print(DateTime.today)
-    # print(DateTime.TRADING)
-    # print(DateTime.WISE)
-    # print(DateTime.get_previous_trading_dates())
-    # print(DateTime.is_market_open())
-    # print(DateTime.today)
-    # print(DateTime.trading)
+    print(TradingDate.base)
+    TradingDate.base = "20240115"
+    print(TradingDate.base)
+    print(TradingDate.today)
+    # print(TradingDate.TRADING)
+    # print(TradingDate.WISE)
+    # print(TradingDate.get_previous_trading_dates())
+    # print(TradingDate.is_market_open())
+    # print(TradingDate.today)
+    # print(TradingDate.trading)
