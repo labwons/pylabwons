@@ -15,6 +15,6 @@ class Prep:
             for col in others:
                 key = col.replace('_other', '')
                 if len(rebase[col].dropna()) != len(rebase[key].dropna()):
-                    rebase[key] = rebase[key].combine_first(rebase[col])
+                    rebase[key] = rebase[col].combine_first(rebase[key])
             base = rebase.drop(columns=others)
         return base

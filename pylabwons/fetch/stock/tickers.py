@@ -43,6 +43,7 @@ def get_corporations() -> DataFrame:
         corp['종목코드'] = corp['종목코드'].astype(str).str.zfill(6)
         corp = corp.drop(columns=['대표자명', '홈페이지', '지역', '결산월'])
         corp = corp.rename(columns={key:val for key, val in RENAMER.items() if key in corp})
+        corp["IPO"] = corp["IPO"].str.replace("-", "")
         corp['market'] = corp['market'].str.replace("코스닥", "KOSDAQ").replace("유가","KOSPI").replace("코넥스", "KONEX")
         corp = corp.set_index(keys='ticker')        
         return corp
