@@ -24,15 +24,12 @@ RENAMER = {
     '고가': 'high',
     '저가': 'low',
     '종가': 'close',
-    '등락률': 'changeRate',
     '시가총액': 'marketCap',
     '거래량': 'volume',
     '거래대금': 'amount',
     '상장주식수':'shares',
-    '보유수량': 'foreignersShares',
     '지분율': 'foreignersRate',
-    '한도수량': 'exhaustionShares',
-    '한도소진률': 'exhsuationRate'
+    '한도소진률': 'exhaustionRate'
 }
 
 
@@ -55,8 +52,8 @@ def get_ohlcvs(date:str='') -> DataFrame:
         date = TradingDate.recent
     try:
         data = get_market_ohlcv_by_ticker(date=date, market='ALL')
-        data = data.drop(columns=['등락률'])
         data.index.name = 'ticker'
+        data = data.drop(columns=[col for col in data if col not in RENAMER])
         data = data.rename(columns={key:val for key, val in RENAMER.items() if key in data})
         return data
     except (KeyError, Exception):
@@ -68,6 +65,7 @@ def get_market_caps(date:str='') -> DataFrame:
     try:
         data = get_market_cap_by_ticker(date=date, market='ALL')
         data.index.name = 'ticker'
+        data = data.drop(columns=[col for col in data if col not in RENAMER])
         data = data.rename(columns={key:val for key, val in RENAMER.items() if key in data})
         return data
     except (KeyError, Exception):
@@ -79,9 +77,10 @@ def get_foreigner_rates(date:str='') -> DataFrame:
     try:
         data = get_exhaustion_rates_of_foreign_investment(date=date, market='ALL')
         data.index.name = 'ticker'
+        data = data.drop(columns=[col for col in data if col not in RENAMER])
         data = data.rename(columns={key:val for key, val in RENAMER.items() if key in data})
-        typecastInt32 = ['shares', 'foreignersShares', 'exhaustionShares']
-        typecastFloat = ['foreignersRate', 'exhsuationRate']
+        typecastInt32 = ['shares']
+        typecastFloat = ['foreignersRate', 'exhaustionRate']
         data[typecastInt32] = data[typecastInt32].astype('int32')
         data[typecastFloat] = data[typecastFloat].astype('float32')
         return data

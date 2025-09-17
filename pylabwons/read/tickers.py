@@ -78,7 +78,7 @@ class Tickers(DataFrame, metaclass=metaclass):
 }},""")
 
         data.to_parquet(self._src_, engine='pyarrow')
-        data.to_csv(self._src_.replace('.parquet', '.csv'), encoding='utf-8')
+        data.to_csv(self._src_.replace('.parquet', '.csv'), encoding='euc-kr')
         super().__init__(data)
         return
 
