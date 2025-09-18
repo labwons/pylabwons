@@ -12,20 +12,18 @@ class _data(DataDictionary):
         super().__init__(
             root=os.path.join(PROJECT_PATH, 'data'),
             logs=os.path.join(PROJECT_PATH, 'data', 'logs'),
-            tickers=os.path.join(PROJECT_PATH, 'data', 'tickers'),
-            timeseries=os.path.join(PROJECT_PATH, 'data', 'timeseries'),
-            finance=os.path.join(PROJECT_PATH, 'data', 'finance'),
+            tickers=os.path.join(PROJECT_PATH, 'data', 'stock', 'tickers'),
+            finance=os.path.join(PROJECT_PATH, 'data', 'stock', 'finance'),
+            ohlcv=os.path.join(PROJECT_PATH, 'data', 'stock', 'ohlcv'),
+            index=os.path.join(PROJECT_PATH, 'data', 'index'),
             date=date
         )
         os.makedirs(self.logs, exist_ok=True)
-        os.makedirs(self.timeseries, exist_ok=True)
+        os.makedirs(self.index, exist_ok=True)
         os.makedirs(self.tickers, exist_ok=True)
         os.makedirs(self.finance, exist_ok=True)
+        os.makedirs(self.ohlcv, exist_ok=True)
         return
-
-    # def __iter__(self):
-    #     for ticker in os.listdir(self.tickers):
-    #         yield ticker.split('.')[0]
 
     @classmethod
     def create(cls, file:str):

@@ -40,12 +40,14 @@ class Tickers(DataFrame, metaclass=metaclass):
     def basics(cls) -> DataFrame:
         return cls.read("marketbasic")
 
-    # @property
-    # def ones(self) -> DataFrame:
-    #     filtered = filtered[~(filtered['industryCode'].isna() | filtered['sectorCode'].isna())]
-    #     filtered = filtered[filtered['marketCap'] >= 5e+10]
-    #     filtered = filtered[filtered['amount'] >= 2e+8]
-    #     return filtered
+    @property
+    def subjects(self) -> DataFrame:
+        filtered = self.copy()
+        filtered = filtered[
+            (filtered['open'] != 0) & \
+            (filtered['amount'] >= 5e+8)
+        ]
+        return filtered
 
     def rebase(self):
         exdef.check_sectors(exdef.ex_sectors, self.sectors)
@@ -88,5 +90,6 @@ if __name__ == "__main__":
     set_option('display.expand_frame_repr', False)
 
     tickers = Tickers()
-    tickers.rebase()
-    print(tickers)
+    # tickers.rebase()
+    # print(tickers)
+    print(tickers.subjects)
