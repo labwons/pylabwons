@@ -1,4 +1,5 @@
 from pylabwons.util.tradingdate import TradingDate
+from pylabwons.util.path import ARCHIVE
 
 from pandas import DataFrame
 from pykrx.stock import (
@@ -6,6 +7,9 @@ from pykrx.stock import (
     get_market_cap_by_date,
     get_exhaustion_rates_of_foreign_investment_by_date
 )
+from time import sleep
+import os
+
 
 RENAMER = {
     "시가": "open", "고가": "high", "저가": "low", "종가": "close", "거래량": "volume",
@@ -54,5 +58,28 @@ def get_foreigner_rate(ticker:str, **kwargs) -> DataFrame:
 
 
 def backfill(*tickers, **kwargs):
+    TRY_COUNT = 5
     logger = kwargs['logger'] if "logger" in kwargs else None
+    sizeof = len(tickers)
+    for n, ticker in enumerate(tickers):
+        index = f'{n + 1}/{sizeof}'.zfill(len(str(sizeof)) * 2 + 1)
+        if logger:
+            logger.info(f'FETCH OHLCV: {ticker} ... ({index})')
+        for m in range(1, TRY_COUNT + 1, 1):
+            try:
+                ohlcv = get_ohlcv(ticker=ticker, **kwargs)
+                if ohlcv.empty:
+                    raise Exception
+                file = os.path.join(ARCHIVE.ohlcv, f'{ticker}.pkl')
+                ohlcv.to_pickle(ARCHIVE.create(file))
+                break
+            except (AttributeError, KeyError, ValueError, Exception):
+                if logger:
+                    logger.info(f'>>> RETRY FETCHING OHLCV: {ticker} ... {m}')
+                sleep(5)
+                        
+            if m == TRY_COUNT and logger:
+                logger.info(f'>>> FAILED TO FETCH OHLCV FOR TICKER: {ticker}')
+                
+
 

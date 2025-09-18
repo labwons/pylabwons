@@ -8,7 +8,9 @@ from .stock.tickers import (
 
 from .stock.series import (
     get_ohlcv,
-    get_foreigner_rate
+    get_market_cap,
+    get_foreigner_rate,
+    backfill
 )
 
 
@@ -20,4 +22,5 @@ market_caps = get_market_caps
 corporations = get_corporations
 
 ohlcv = get_ohlcv
+market_cap = get_market_cap
 foreigner_rate = get_foreigner_rate
