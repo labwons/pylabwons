@@ -1,34 +1,21 @@
-from pylabwons.typesys import DataDictionary
+from pylabwons.typesys import classproperty, Path
 from pandas import DataFrame
 import os
 
 
 PROJECT_NAME = "pylabwons"
-PROJECT_PATH = f"{os.path.dirname(__file__)[:os.path.dirname(__file__).rindex(PROJECT_NAME)]}{PROJECT_NAME}"
+PROJECT_PATH = f"{os.path.dirname(__file__)[:os.path.dirname(__file__).rindex(PROJECT_NAME)]}"
 
-class _data(DataDictionary):
 
-    def __init__(self, date:str=''):
-        super().__init__(
-            root=os.path.join(PROJECT_PATH, 'data'),
-            logs=os.path.join(PROJECT_PATH, 'data', 'logs'),
-            tickers=os.path.join(PROJECT_PATH, 'data', 'stock', 'tickers'),
-            finance=os.path.join(PROJECT_PATH, 'data', 'stock', 'finance'),
-            ohlcv=os.path.join(PROJECT_PATH, 'data', 'stock', 'ohlcv'),
-            index=os.path.join(PROJECT_PATH, 'data', 'index'),
-            date=date
-        )
-        os.makedirs(self.logs, exist_ok=True)
-        os.makedirs(self.index, exist_ok=True)
-        os.makedirs(self.tickers, exist_ok=True)
-        os.makedirs(self.finance, exist_ok=True)
-        os.makedirs(self.ohlcv, exist_ok=True)
-        return
+class ARCHIVE_LOCAL:
 
-    @classmethod
-    def create(cls, file:str):
-        os.makedirs(os.path.dirname(file), exist_ok=True)
-        return file
+    def __init__(self, root:str = ''):
+        self.root = root = Path(root) if root else Path(os.path.join(PROJECT_PATH, 'labwons-archive'))
+        self.logs = root['logs']
+        self.tickers = root['tickers']
+        self.finance = root['finance']
+        self.ohlcv = root['ohlcv']
+        self.index = root['index']
 
     @property
     def files(self) -> DataFrame:
@@ -48,8 +35,9 @@ class _data(DataDictionary):
         return DataFrame(data)
 
 
-# Alias
-ARCHIVE = DATA = PROJECT_DATA = _data()
+class ARCHIVE:
+    root = r'https://github.com/labwons/labwons-archive/raw/refs/heads/main'
+    tickers = f'{root}/tickers/tickers.parquet'
 
 
 if __name__ == "__main__":
@@ -58,5 +46,5 @@ if __name__ == "__main__":
 
     print(PROJECT_NAME)
     print(PROJECT_PATH)
-    print(PROJECT_DATA)
-    print(PROJECT_DATA.files)
+    print(ARCHIVE_LOCAL.root)
+    print(ARCHIVE_LOCAL.tickers)

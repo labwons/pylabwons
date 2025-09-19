@@ -38,7 +38,7 @@ class TradingDate:
         if cls.is_market_open():
             return cls.get_recent_wise_date()
         else:
-            return cls.trading
+            return cls.recent_closed
 
     @classmethod
     def get_recent_wise_date(cls) -> str:

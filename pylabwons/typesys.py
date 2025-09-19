@@ -1,24 +1,6 @@
 from datetime import datetime
-import pprint
-
-
-class metaclass(type):
-    """
-    클래스의 던더 메소드 정의를 위한 메타 클래스
-    메타 클래스로 지정할 경우 하위 클래스 변수를 명시적으로 지정해주어야 함.
-    """
-    _iter_ = None
-    _str_ = None
-
-    def __iter__(cls) -> iter:
-        if cls._iter_ is None:
-            raise TypeError('Not Iterable: {cls._iter_} is not defined')
-        return iter(cls._iter_)
-
-    def __str__(cls) -> str:
-        if cls._str_ is None:
-            raise TypeError('Not Printable: {cls._str_} is not defined')
-        return str(cls._str_)
+from typing import List, Tuple
+import pprint, os
 
 
 class classproperty:
@@ -53,6 +35,24 @@ class classproperty:
     def setter(self, func):
         self.fset = func
         return self
+
+class metaclass(type):
+    """
+    클래스의 던더 메소드 정의를 위한 메타 클래스
+    메타 클래스로 지정할 경우 하위 클래스 변수를 명시적으로 지정해주어야 함.
+    """
+    _iter_ = None
+    _str_ = None
+
+    def __iter__(cls) -> iter:
+        if cls._iter_ is None:
+            raise TypeError('Not Iterable: {cls._iter_} is not defined')
+        return iter(cls._iter_)
+
+    def __str__(cls) -> str:
+        if cls._str_ is None:
+            raise TypeError('Not Printable: {cls._str_} is not defined')
+        return str(cls._str_)
 
 class DataDictionary(dict):
     """
@@ -95,3 +95,38 @@ class DataDictionary(dict):
 
     def __str__(self):
         return pprint.pformat(dict(self))
+
+
+class Path(str):
+
+    def __new__(cls, path:str):
+        if os.path.isfile(path):
+            raise TypeError(f'Invalid Path Type: {path}')
+        os.makedirs(path, exist_ok=True)
+        return super().__new__(cls, path)
+
+    def __init__(self, path:str):
+        self._path = path
+
+    def __getitem__(self, item):
+        if isinstance(item, int) or isinstance(item, slice):
+            return super().__getitem__(item)
+        if isinstance(item, str):
+            if '.' in item:
+                return os.path.join(self._path, item)
+            return Path(os.path.join(self._path, item))
+        if isinstance(item, (List[str], Tuple[str])):
+            sub = self._path
+            for dr in item[:-1]:
+                sub = os.path.join(sub, dr)
+                os.makedirs(sub, exist_ok=True)
+            if '.' in item[-1]:
+                return os.path.join(self._path, *item)
+            return Path(os.path.join(self._path, *item))
+
+        raise TypeError(f'Invalid Path Type: {item}')
+
+
+if __name__ == "__main__":
+    path = Path(r'E:\SIDEPROJ\pylabwons\labwons-archive\tickers')
+    print(path['test', 'test.txt'])
