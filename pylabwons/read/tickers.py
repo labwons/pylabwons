@@ -1,4 +1,4 @@
-from pylabwons.util.path import ARCHIVE
+from pylabwons.read.addr import ARCHIVE
 from pandas import DataFrame
 import pandas as pd
 

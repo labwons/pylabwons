@@ -1,5 +1,4 @@
 from pylabwons.util.tradingdate import TradingDate
-from pylabwons.util.path import ARCHIVE
 
 from pandas import DataFrame
 from pykrx.stock import (
@@ -57,28 +56,27 @@ def get_foreigner_rate(ticker:str, **kwargs) -> DataFrame:
     return data
 
 
-def backfill(*tickers, **kwargs):
-    TRY_COUNT = 5
+def backfill(path:str, *tickers, **kwargs):
+    try_count = 5
     logger = kwargs['logger'] if "logger" in kwargs else None
     sizeof = len(tickers)
     for n, ticker in enumerate(tickers):
         index = f'{n + 1}/{sizeof}'.zfill(len(str(sizeof)) * 2 + 1)
         if logger:
             logger.info(f'FETCH OHLCV: {ticker} ... ({index})')
-        for m in range(1, TRY_COUNT + 1, 1):
+        for m in range(1, try_count + 1, 1):
             try:
                 ohlcv = get_ohlcv(ticker=ticker, **kwargs)
                 if ohlcv.empty:
                     raise Exception
-                file = os.path.join(ARCHIVE.ohlcv, f'{ticker}.pkl')
-                ohlcv.to_pickle(ARCHIVE.create(file))
+                ohlcv.to_pickle(os.path.join(path, f'{ticker}.pkl'))
                 break
             except (AttributeError, KeyError, ValueError, Exception):
                 if logger:
                     logger.info(f'>>> RETRY FETCHING OHLCV: {ticker} ... {m}')
                 sleep(5)
                         
-            if m == TRY_COUNT and logger:
+            if m == try_count and logger:
                 logger.info(f'>>> FAILED TO FETCH OHLCV FOR TICKER: {ticker}')
                 
 

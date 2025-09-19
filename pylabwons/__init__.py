@@ -1,4 +1,5 @@
 __all__ = [
+    "Archiving",
     "classproperty",
     "DataDictionary",
     "Fetch",
@@ -8,12 +9,8 @@ __all__ = [
     "Tickers",
     "TradingDate",
 
-    "ARCHIVE",
-    "ARCHIVE_LOCAL",
     "HOST",
     "GITHUB_EVENT",
-    "PROJECT_NAME",
-    "PROJECT_PATH",
 ]
 
 from .typesys import (
@@ -23,16 +20,10 @@ from .typesys import (
 )
 
 from .util.logger import Logger
-from .util.path import (
-    ARCHIVE,
-    ARCHIVE_LOCAL,
-    PROJECT_NAME,
-    PROJECT_PATH
-)
 from .util.tradingdate import TradingDate
-
 from .util.prep import Prep
 
+from . import archiving as Archiving
 from . import fetch as Fetch
 
 from .read.tickers import Tickers
