@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List, Tuple
 import pprint, os
 
 
@@ -115,7 +114,7 @@ class Path(str):
             if '.' in item:
                 return os.path.join(self._path, item)
             return Path(os.path.join(self._path, item))
-        if isinstance(item, (List[str], Tuple[str])):
+        if isinstance(item, (list, tuple)):
             sub = self._path
             for dr in item[:-1]:
                 sub = os.path.join(sub, dr)
