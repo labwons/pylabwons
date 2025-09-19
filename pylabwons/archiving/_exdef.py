@@ -1431,6 +1431,14 @@ sectors = DataFrame([
         "KRXIndustry": "기타 전문 도매업",
         "products": "바이오리엑터(Bioreactor, 생물반응기)",
     },
+    {
+        "ticker": "488280",
+        "name": "에스투더블유",
+        "sectorCode": "__sectorCode__",
+        "industryCode": "__industryCode__",
+        "KRXIndustry": "소프트웨어 개발 및 공급업",
+        "products": "공공/정부기관용 사이버안보 빅데이터 플랫폼, 기업 및 기관용 사이버위협 인텔리전스 플랫폼, 산업용 생성형 AI 플랫폼",
+    },
 ]) \
     .set_index(keys='ticker') \
     .drop(columns=['KRXIndustry', 'products'])

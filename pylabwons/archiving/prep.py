@@ -17,7 +17,7 @@ class ArchivePrep:
         return self.archive.read(item)
 
     def rebase(self) -> DataFrame:
-        resource = [self['basics'], self['corporations'], self['sectors']]
+        resource = [self['market'], self['corporations'], self['sectors']]
         _exdef.check_sectors(resource[-1])
         resource += [_exdef.sectors]
 
