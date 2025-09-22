@@ -107,7 +107,7 @@ class Path(str):
     def __init__(self, path:str):
         self._path = path
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> str:
         if isinstance(item, int) or isinstance(item, slice):
             return super().__getitem__(item)
         if isinstance(item, str):
@@ -124,6 +124,12 @@ class Path(str):
             return Path(os.path.join(self._path, *item))
 
         raise TypeError(f'Invalid Path Type: {item}')
+
+    def __delitem__(self, item):
+        os.remove(self[item])
+
+
+
 
 
 if __name__ == "__main__":

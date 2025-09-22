@@ -2,8 +2,9 @@ from pylabwons.util.logger import Logger
 from pylabwons.util.prep import Prep
 from pylabwons.archiving import _exdef
 from pylabwons.archiving.archive import Archive
-from pandas import DataFrame
+from pandas import DataFrame, Series
 import pandas as pd
+import random, os
 
 
 class ArchivePrep:
@@ -15,6 +16,28 @@ class ArchivePrep:
 
     def __getitem__(self, item):
         return self.archive.read(item)
+
+    @property
+    def last_date(self) -> pd.Timestamp:
+        samples_date = Series({f: self[f].index[-1] for f in random.sample(self.archive.tickers, 10)})
+        return samples_date.value_counts().index[0]
+        # print(samples_date)
+        # print(samples_date.value_counts().index[0])
+        # print(self.archive['date'].dropna().unique())
+        # return
+
+    @property
+    def subjects(self) -> DataFrame:
+        tickers = self['tickers'].copy()
+        tickers = tickers[tickers['open'] != 0]
+        tickers = tickers[
+            tickers.index.isin(self.archive.tickers) | \
+            (tickers['amount'] >= 5e+8) | \
+            (tickers['marketCap'] >= 1e+11)
+        ]
+
+        # backfill =
+        return tickers
 
     def rebase(self) -> DataFrame:
         resource = [self['market'], self['corporations'], self['sectors']]
@@ -55,7 +78,8 @@ if __name__ == "__main__":
     from pandas import set_option
     set_option('display.expand_frame_repr', False)
 
-    tickers = Tickers()
-    # tickers.rebase()
-    # print(tickers)
-    print(tickers.subjects)
+    archive = Archive()
+    archivePrep = ArchivePrep(archive)
+    print(archivePrep.last_date)
+    print(archivePrep.subjects)
+
