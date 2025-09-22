@@ -3,7 +3,8 @@ from .stock.tickers import (
     get_foreigner_rates,
     get_market_caps,
     get_corporations,
-    get_ohlcvs
+    get_ohlcvs,
+    get_multiples
 )
 
 from .stock.series import (
@@ -20,6 +21,7 @@ sectors = get_sectors
 foreigner_rates = get_foreigner_rates
 market_caps = get_market_caps
 corporations = get_corporations
+multiples = get_multiples
 
 ohlcv = get_ohlcv
 market_cap = get_market_cap

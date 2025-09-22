@@ -60,7 +60,7 @@ class Archive(DataFrame):
                             'name': name,
                             'type': key,
                             'extension': extension,
-                            'path': path,
+                            'path': path.replace(self.PATH, ""),
                             'date': date
                         })
 
@@ -151,19 +151,20 @@ class Archive(DataFrame):
                     file = files[files['date'] <= int(date)].iloc[0]
                 else:
                     file = files.iloc[0]
-
+        
+        path = f'{self.PATH}{file["path"]}'
         if file['extension'] == 'csv':
-            return pd.read_csv(file['path'], encoding='euc-kr').set_index('ticker')
+            return pd.read_csv(path, encoding='euc-kr').set_index('ticker')
         elif file['extension'] == 'parquet':
-            return pd.read_parquet(file['path'], engine='pyarrow')
+            return pd.read_parquet(path, engine='pyarrow')
         elif file['extension'] == 'pkl':
-            return pd.read_pickle(file['path'])
+            return pd.read_pickle(path, engine='pyarrow')
         raise TypeError(f'File {name} not supported.')
 
     def rebase_tickers(self, date:str=''):
         if not date:
             date = self[self['name'] == 'market']['date'].sort_values(ascending=False).values[0]
-        resource = [self('market'), self('corporations'), self('sectors')]
+        resource = [self('market', date), self('corporations', date), self('sectors', date)]
         _exdef.check_sectors(resource[-1])
         resource += [_exdef.sectors]
 
@@ -197,7 +198,7 @@ class Archive(DataFrame):
 
         data.to_parquet(self.PATH['tickers', 'tickers.parquet'], engine='pyarrow')
         data.to_csv(self.PATH['tickers', 'tickers.csv'], encoding='euc-kr')
-        self.loc[self['name'] == 'tickers', 'date'] = date
+        self.loc[self['name'] == 'tickers', 'date'] = int(date)
         return
 
 
@@ -213,12 +214,8 @@ if __name__ == "__main__":
     # print(archive.ohlcv_load_actions())
     # archive.ohlcv_update() # ~ 10.0s
     # archive.ohlcv_update('005930')
-    # archive.export_metadata() # ~ 3.0s
+    archive.export_metadata() # ~ 3.0s
 
-    import time
-    stime = time.perf_counter()
-    archive.ohlcv_update()
-    print(f'{time.perf_counter() - stime:.3f}s')
 
 
     # print(PROJECT_PATH)

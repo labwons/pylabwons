@@ -5,7 +5,8 @@ from pandas import DataFrame
 from pykrx.stock import (
     get_exhaustion_rates_of_foreign_investment,
     get_market_cap_by_ticker,
-    get_market_ohlcv_by_ticker
+    get_market_ohlcv_by_ticker,
+    get_market_fundamental_by_ticker
 )
 from time import sleep
 from typing import Dict
@@ -87,6 +88,15 @@ def get_foreigner_rates(date:str='') -> DataFrame:
     except (KeyError, Exception):
         return DataFrame()
 
+def get_multiples(date:str='') -> DataFrame:
+    if not date:
+        date = TradingDate.recent
+    try:
+        data = get_market_fundamental_by_ticker(date=date, market='ALL')
+        data.index.name = 'ticker'
+        return data
+    except (KeyError, Exception):
+        return DataFrame()
 
 def get_sectors(date:str='', logger=None) -> DataFrame:
 
