@@ -33,13 +33,12 @@ jobs:
           architecture: 'x64'
 
     - name: Install archive
-      run: git clone https://github.com/labwons/labwons-archive.git
+      run: git clone https://x-access-token:${{ secrets.PAT }}@github.com/labwons/labwons-archive.git
 
     - name: Install dependencies
       run: |
         pip install jupyter nbclient nbconvert ipykernel
         pip install -e .
-        
 
     - name: Build Artifacts
       run: |   
@@ -48,32 +47,21 @@ jobs:
 
     - name: Clean up
       run: |
-        rm notebook/archiving.py      
+        rm notebook/archiving.py
 
-#    - name: Commit and Push changes
-#      env:
-#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#      run : |
-#        git config --global user.name 'SNOB ACTIONS'
-#        git config --global user.email 'snob.labwons@gmail.com'
-#        git add .
-#
-#        TIMESTAMP=$(date)
-#        if git diff --cached --quiet; then
-#          echo "No changes to commit."
-#        else
-#          git commit -m "ROUTINE on $TIMESTAMP"
-#          git push
-#        fi
+    - name: Set Git config
+      run: |
+        git config --global user.name 'SNOB ACTIONS'
+        git config --global user.email 'snob.labwons@gmail.com'        
 
-    # - name: Setup Pages
-    #   uses: actions/configure-pages@v5
-
-    # - name: Upload Pages Artifact
-    #   uses: actions/upload-pages-artifact@v3
-    #   with:
-    #     path: docs
-
-    # - name: Deploy to GitHub Pages
-    #   uses: actions/deploy-pages@v4
-
+    - name: Commit and Push Changes to Archive
+      working-directory: ./labwons-archive
+      run : |
+        git add .
+        TIMESTAMP=$(date)
+        if git diff --cached --quiet; then
+          echo "No changes to commit."
+        else
+          git commit -m "AUTOMATED UPDATE on $TIMESTAMP"
+          git push
+        fi
