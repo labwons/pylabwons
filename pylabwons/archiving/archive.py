@@ -103,7 +103,7 @@ class Archive(DataFrame):
             (to_backfill['amount'] >= 5e+8) | \
             (to_backfill['marketCap'] >= 1e+11)
         ]
-        to_backfill = to_backfill[~to_backfill.isin(self.ohlcv_tickers())]
+        to_backfill = to_backfill[~to_backfill.index.isin(self.ohlcv_tickers())]
         return to_backfill.index.tolist()
 
     def ohlcv_update(self, *tickers):
