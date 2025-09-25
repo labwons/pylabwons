@@ -88,6 +88,7 @@ class Archive(DataFrame):
             data['path'] = to.replace(self.PATH, "")
             del data['file']
             meta = pd.concat([self, DataFrame([data])], axis=0, ignore_index=True)
+            meta['date'] = meta['date'].astype(str)
             meta.to_parquet(self.PATH['metadata.parquet'], engine='pyarrow')
             meta.to_csv(self.PATH['metadata.csv'], encoding='utf-8')
             super().__init__(meta)
@@ -178,7 +179,7 @@ class Archive(DataFrame):
                 else:
                     file = files.iloc[0]
         
-        path = f'{self.PATH}{file["path"]}'
+        path = f'{self.PATH}{file["path"].replace("\\", os.sep)}'        
         if file['extension'] == 'csv':
             return pd.read_csv(path, encoding='euc-kr').set_index('ticker')
         elif file['extension'] == 'parquet':
@@ -204,6 +205,7 @@ class Archive(DataFrame):
 
         missing = data[data['industryCode'].isna() | (data['sectorCode'].isna())]
         missing = missing.sort_values(by='marketCap', ascending=False)
+        message = ''
         if not missing.empty:
             message = f"[WARNING] There are {len(missing)} tickers with missing sector or industry codes.\n"
             for ticker, row in missing.iterrows():
@@ -215,14 +217,11 @@ class Archive(DataFrame):
             "KRXIndustry": "{row['KRXIndustry']}",
             "products": "{row['products']}",
         }},\n"""
-            if self.logger:
-                self.logger.warning(message)
-            else:
-                print(message)
+            
 
         data.to_parquet(self.PATH['tickers', 'tickers.parquet'], engine='pyarrow')
         data.to_csv(self.PATH['tickers', 'tickers.csv'], encoding='euc-kr')
-        return
+        return message
 
 
 if __name__ == "__main__":
