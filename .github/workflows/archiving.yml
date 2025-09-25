@@ -1,7 +1,7 @@
 name: Archiving
 on:
-   schedule:
-     - cron: '35 6 * * 1-5'  # KST 3:35 PM
+  schedule:
+    - cron: '35 6 * * 1-5'  # KST 3:35 PM
   #   - cron: '0 13 * * 1-5' # KST 10:00 PM
   workflow_dispatch:
   # push:
