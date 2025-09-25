@@ -26,6 +26,5 @@ if __name__ == "__main__":
     set_option('display.expand_frame_repr', False)
 
     tickers = Tickers()
-    # tickers.rebase()
-    # print(tickers)
+    print(tickers)
     print(tickers.subjects)
