@@ -27,7 +27,7 @@ class Archive(DataFrame):
 
     @classmethod
     def build_metadata(cls) -> DataFrame:
-        data = []
+        objs = []
         for key in os.listdir(cls.__root__):
             if key.startswith('.'):
                 continue
@@ -44,7 +44,7 @@ class Archive(DataFrame):
                         date = pd.read_parquet(path, engine='pyarrow').index[-1].strftime('%Y%m%d')
                     else:
                         date = np.nan
-                    data.append({
+                    objs.append({
                         'name': name,
                         'type': key,
                         'extension': extension,
@@ -52,7 +52,7 @@ class Archive(DataFrame):
                         'date': date
                     })
 
-        data = DataFrame(data)
+        data = DataFrame(objs)
         data.loc[data['name'] == 'tickers', 'date'] = data[data['name'] == 'market']['date'].sort_values().values[-1]
         data.to_parquet(cls.__root__['metadata.parquet'], engine='pyarrow')
         data.to_csv(cls.__root__['metadata.csv'], encoding='utf-8')
@@ -71,7 +71,7 @@ class Archive(DataFrame):
     def PATH(self) -> Path:
         return self.__root__
 
-    def new(self, data:DataFrame, *path):
+    def push(self, data:DataFrame, *path):
         to = self.PATH[*path]
         if to.endswith('.parquet'):
             data.to_parquet(to, engine='pyarrow')
@@ -239,6 +239,7 @@ if __name__ == "__main__":
     # archive.ohlcv_update('005930')
     # archive.build_metadata() # ~ 3.0s
 
+    print(archive[archive['type'] == 'tickers'].sort_values(by='date', ascending=False))
 
     # print(PROJECT_PATH)
     # print(ARCHIVE_PATH)
