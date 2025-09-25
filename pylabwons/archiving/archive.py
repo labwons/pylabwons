@@ -103,7 +103,7 @@ class Archive(DataFrame):
     def ohlcv_load_actions(self) -> Dict[str, List[str]]:
         """
         CLASSIFY OHLCV DATA: WHETHER TO UPDATE OR FETCH
-        :return: List[str] BACKFILL REQUIRED TICKERS
+        :return:
         """
         existed = self.ohlcv_tickers()
         market = self[self['name'] == 'market']
@@ -134,25 +134,26 @@ class Archive(DataFrame):
             "backfill": to_backfill.index.tolist()
         }
 
-    def ohlcv_update(self, *tickers):
-        if not tickers:
-            tickers = self.ohlcv_tickers()
+    def ohlcv_update(self):
+        ohlcvs = self[self['type'] == 'ohlcv'].copy()
+        market = self[self['name'] == 'market'].copy()
 
-        last_date = max(self[self['type'] == 'ohlcv']['date'].unique())
-        fill_date = pd.to_datetime(self[self['date'] > last_date]['date'].astype(str).unique())
+        last_date = min(ohlcvs['date'].unique())
+        fill_date = pd.to_datetime(market[market['date'] > last_date]['date'].astype(str).unique())
 
-        market = {date: self('market', date=date.strftime("%Y%m%d")) for date in fill_date}
-        for ticker in tickers:
+        markets = {date: self('market', date=date.strftime("%Y%m%d")) for date in fill_date}
+        # print(last_date)
+        # print(fill_date)
+        # print(markets.keys())
+        for ticker in self.ohlcv_tickers():
             ohlcv = self(ticker)
             update = [ohlcv]
-            for date, data in market.items():
+            for date, data in markets.items():
                 if not date in ohlcv.index and ticker in data.index:
                     patch = data.loc[[ticker]][ohlcv.columns]
                     patch.index = [date]
                     update.append(patch)
             ohlcv = pd.concat(update, axis=0).sort_index()
-            self.loc[(self['type'] == 'ohlcv') & (self['name'] == ticker), 'date'] \
-                = int(ohlcv.index[-1].strftime("%Y%m%d"))
             ohlcv.to_parquet(self.PATH['ohlcv', f'{ticker}.parquet'], engine='pyarrow')
         return
 
@@ -178,8 +179,9 @@ class Archive(DataFrame):
                     file = files[files['date'] <= int(date)].iloc[0]
                 else:
                     file = files.iloc[0]
-        
-        path = f'{self.PATH}{file["path"].replace("\\", os.sep)}'        
+
+        filepath = file["path"].replace("\\", os.sep)
+        path = f'{self.PATH}{filepath}'
         if file['extension'] == 'csv':
             return pd.read_csv(path, encoding='euc-kr').set_index('ticker')
         elif file['extension'] == 'parquet':
@@ -217,7 +219,6 @@ class Archive(DataFrame):
             "KRXIndustry": "{row['KRXIndustry']}",
             "products": "{row['products']}",
         }},\n"""
-            
 
         data.to_parquet(self.PATH['tickers', 'tickers.parquet'], engine='pyarrow')
         data.to_csv(self.PATH['tickers', 'tickers.csv'], encoding='euc-kr')
@@ -237,8 +238,6 @@ if __name__ == "__main__":
     # archive.ohlcv_update() # ~ 10.0s
     # archive.ohlcv_update('005930')
     # archive.build_metadata() # ~ 3.0s
-
-    print(archive[archive['type'] == 'tickers'].sort_values(by='date', ascending=False))
 
     # print(PROJECT_PATH)
     # print(ARCHIVE_PATH)
