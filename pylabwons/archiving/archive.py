@@ -1,13 +1,8 @@
-from pylabwons.archiving import manager_extern
-from pylabwons.fetch import get_ohlcv
-from pylabwons.util.prep import Prep
 from pylabwons.typesys import Path, Url
-
 from dataclasses import dataclass
 from pandas import DataFrame
-from typing import Dict, List, Union
+from typing import Union
 import pandas as pd
-import numpy as np
 import os
 
 
@@ -29,6 +24,7 @@ class ARCHIVE_PATH:
 
 class Archive:
 
+    SRC = ARCHIVE_PATH
     __root__: Union[Path, Url, str, None] = None
     __meta__: DataFrame = DataFrame()
 
@@ -73,7 +69,7 @@ class Archive:
     def path(self) -> Union[Path, Url]:
         return self.__root__
 
-    def read(self, name:str, **kwargs) :
+    def read(self, name:str, **kwargs) -> DataFrame:
         meta = self[self['name'] == name]
         if meta.empty:
             raise AttributeError(f'{name} NOT FOUND IN ARCHIVE')
@@ -87,9 +83,13 @@ class Archive:
         if len(meta) > 1:
             meta = meta.iloc[[0]]
         meta = meta.iloc[0]
-        path = f'{self._root}/{meta.path}'
-        reader = getattr(pd, f'read_{meta.extension}')
-        return reader(path)
+        if meta.empty:
+            return DataFrame()
+        return getattr(pd, f'read_{meta.extension}')(f'{self._root}/{meta.path}')
+
+
+# Alias
+ROOT = ARCHIVE_PATH
 
 
 if __name__ == "__main__":

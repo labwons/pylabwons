@@ -6,7 +6,6 @@ __all__ = [
     "Logger",
     "metaclass",
 
-    "Tickers",
     "TradingDate",
 
     "USER"
@@ -24,8 +23,3 @@ from .util import USER
 
 from . import archiving as Archiving
 from . import fetch as Fetch
-
-from .access.tickers import Tickers
-
-
-

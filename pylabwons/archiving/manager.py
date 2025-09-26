@@ -4,7 +4,7 @@ from pylabwons.analytic.prep import smart_concat
 from pylabwons.fetch import get_ohlcv
 from pylabwons.typesys import DataDictionary
 from pandas import DataFrame
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List, Tuple
 import pandas as pd
 import numpy as np
 import os
@@ -97,11 +97,11 @@ class ArchiveManager(Archive):
                 deleted.append(ticker)
                 existing.remove(ticker)
         backfill = subjects[~subjects.index.isin(existing)].index.tolist()
-        return {
-            "existed": existing,
+        return DataDictionary({
+            "existing": existing,
             "deleted": deleted,
             "backfill": backfill
-        }
+        })
 
     def ohlcv_update(self):
         ohlcvs = self[self['type'] == 'ohlcv'].copy()
@@ -111,7 +111,7 @@ class ArchiveManager(Archive):
         fill_date = pd.to_datetime(market[market['date'] > last_date]['date'].astype(str).unique())
 
         markets = {date: self('market', date=date.strftime("%Y%m%d")) for date in fill_date}
-        for ticker in self.ohlcv_tickers():
+        for ticker in ohlcvs['name']:
             ohlcv = self(ticker)
             update = [ohlcv]
             for date, data in markets.items():
@@ -120,11 +120,8 @@ class ArchiveManager(Archive):
                     patch.index = [date]
                     update.append(patch)
             ohlcv = pd.concat(update, axis=0).sort_index()
-            ohlcv.to_parquet(self.PATH['ohlcv', f'{ticker}.parquet'], engine='pyarrow')
+            ohlcv.to_parquet(self.path['ohlcv', f'{ticker}.parquet'], engine='pyarrow')
         return
-
-    def ohlcv_tickers(self) -> list:
-        return [f.split('.')[0] for f in os.listdir(self.PATH['ohlcv'])]
 
     @staticmethod
     def rebase(*blocks) -> Tuple[DataFrame, DataFrame]:
@@ -151,14 +148,3 @@ if __name__ == "__main__":
     am = ArchiveManager(ARCHIVE_PATH.LOCAL)
     print(am.build_metadata())
 
-    # print(archive)
-    # print(archive.access('corporations'))
-    # print(archive.access('corporations', date='20250917'))
-    # print(archive.ohlcv_tickers)
-    # print(archive.ohlcv_load_actions())
-    # archive.ohlcv_update() # ~ 10.0s
-    # archive.ohlcv_update('005930')
-    # archive.build_metadata() # ~ 3.0s
-
-    # print(PROJECT_PATH)
-    # print(ARCHIVE_PATH)
