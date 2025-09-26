@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any, Union
 import pprint, os
 
 
@@ -107,7 +108,7 @@ class Path(str):
     def __init__(self, path:str):
         self._path = path
 
-    def __getitem__(self, item) -> str:
+    def __getitem__(self, item) -> Union[Any, str]:
         if isinstance(item, int) or isinstance(item, slice):
             return super().__getitem__(item)
         if isinstance(item, str):
@@ -128,7 +129,23 @@ class Path(str):
     def __delitem__(self, item):
         os.remove(self[item])
 
+class Url:
 
+    def __init__(self, root:str):
+        if root.endswith('/'):
+            root = root[:-1]
+        self._root = root
+        return
+
+    def __getitem__(self, item) -> str:
+        if isinstance(item, str):
+            return f'{self._root}/{item}'
+        if isinstance(item, (list, tuple)):
+            url = self._root
+            for e in item:
+                url = f'{url}/{e}'
+            return url
+        raise TypeError(f'Invalid Url Type: {item}')
 
 
 

@@ -1,14 +1,12 @@
-from pylabwons.read.addr import ARCHIVE
+from pylabwons.access.url import URL
 from pandas import DataFrame
 import pandas as pd
 
 
 class Tickers(DataFrame):
 
-    _src_ = ARCHIVE.tickers
-
     def __init__(self):
-        super().__init__(pd.read_parquet(self._src_, engine='pyarrow'))
+        super().__init__(pd.read_parquet(URL.TICKERS, engine='pyarrow'))
         return
 
     @property

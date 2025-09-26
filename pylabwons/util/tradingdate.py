@@ -34,6 +34,10 @@ class TradingDate:
         return getattr(cls, f'_td_{base}')
 
     @classproperty
+    def closed(cls) -> str:
+        return cls.recent_closed
+
+    @classproperty
     def wise(cls) -> str:
         return cls.get_recent_wise_date()
 

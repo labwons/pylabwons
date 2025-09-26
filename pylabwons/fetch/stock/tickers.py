@@ -34,7 +34,7 @@ RENAMER = {
 }
 
 
-def get_corporations() -> DataFrame:
+def get_corporations(*args, **kwargs) -> DataFrame:
     try:
         html = requests.get('http://kind.krx.co.kr/corpgeneral/corpList.do?method=download').text
         corp = pd.read_html(io=StringIO(html), encoding='euc-kr')[0]
