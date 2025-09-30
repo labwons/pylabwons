@@ -1,4 +1,5 @@
 from pylabwons.typesys import Path, Url
+from pylabwons.util import USER
 from dataclasses import dataclass
 from pandas import DataFrame
 from typing import Union
@@ -15,12 +16,13 @@ ACTIONS_PATH = os.path.join(os.getcwd(), 'labwons-archive')
 @dataclass
 class ARCHIVE_PATH:
     ROOT: str = os.path.dirname(__file__)[:os.path.dirname(__file__).rindex('pylabwons') - len(os.sep)]
-    DEFAULT: str = os.path.join(os.path.dirname(ROOT), 'labwons-archive')
-    LOCAL: str = DEFAULT
-    COLAB: str = DEFAULT
+    LOCAL: str = os.path.join(os.path.dirname(ROOT), 'labwons-archive')
     GITHUB: str = r'https://github.com/labwons/labwons-archive/raw/refs/heads/main'
     GITHUB_ACTION: str = os.path.join(os.getcwd(), 'labwons-archive')
-
+    if os.path.exists(LOCAL):
+        COLAB = AUTO_DETECT = LOCAL
+    else:
+        COLAB = AUTO_DETECT = GITHUB
 
 class Archive:
 

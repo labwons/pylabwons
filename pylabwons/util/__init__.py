@@ -13,6 +13,6 @@ class USER:
     elif ACTION is None:
         HOST = "LOCAL"
     else:
-        HOST = "GITHUB"
+        HOST = "GITHUB_ACTION"
 
     ENV = environ.get("USERDOMAIN", None)
