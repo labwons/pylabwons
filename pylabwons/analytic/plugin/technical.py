@@ -102,7 +102,8 @@ def bollinger_band_squeeze_and_expand(ta:DataFrame, window:int=252, squeeze_pct:
     ta['bollinger_squeeze_and_expand_long'] = (
         (ta['_t_rank'] < squeeze_pct) &
         (ta['close'] > ta['bollinger_upper_2x']) &
-        (ta['volume'] >= ta['volume'].rolling(21).max())
+        (ta['volume'] >= ta['volume'].rolling(21).max()) &
+        (ta['close'] >= ta['MA200D'])
     ).astype(int).replace(0, pd.NA)
     del ta['_t_rank']
     return ta
