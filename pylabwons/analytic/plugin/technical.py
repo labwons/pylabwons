@@ -47,8 +47,7 @@ def bollinger_band(ohlct:DataFrame, window:int=20, window_dev:int=2) -> DataFram
 
 def bollinger_band_squeeze_and_expand(ta:DataFrame, window:int=252, squeeze_pct:float=0.1) -> DataFrame:
     """
-    단독 사용은 적합하지 않음
-    - runtime: parameter에 따라 상이하나, 5분 가까이 소요됨
+    - runtime: parameter에 따라 상이, ~5분
     - 주요 결과 예시(1) window=126 / squeeze_pct=0.2 적용 시
     	    forward2wReturn	forward1mReturn	forward2mReturn	forward3mReturn	forward6mReturn
     count	          48765	          48264	          47978	          47431	          45943
@@ -90,13 +89,20 @@ def bollinger_band_squeeze_and_expand(ta:DataFrame, window:int=252, squeeze_pct:
     :param squeeze_pct:
     :return:
     """
+
+    # 현재 밴드 폭의 과거 `window` 거래일 밴드 폭 데이터에 대한 상대적 위치
     ta['_t_rank'] = ta["bollinger_width"].rolling(window).apply(
         lambda x: Series(x).rank(pct=True).iloc[-1]
     )
+
+    # 다음을 만족하는 경우 long 신호로 해석
+    # 1. 현재 밴드 폭이 과거 `window` 데이터 대비 10% 이하로 좁아진(Squeeze) 경우
+    # 2. 현재 종가가 볼린저 밴드 상단을 돌파한 경우
+    # 3. 현재 거래량이 과거 1달 중 최대 값이거나 큰 경우
     ta['bollinger_squeeze_and_expand_long'] = (
         (ta['_t_rank'] < squeeze_pct) &
         (ta['close'] > ta['bollinger_upper_2x']) &
-        (ta['volume'] > ta['volume'].rolling(20).mean() * 1.5)
-    ).astype(int) * ta['close']
+        (ta['volume'] >= ta['volume'].rolling(21).max())
+    ).astype(int).replace(0, pd.NA)
     del ta['_t_rank']
     return ta

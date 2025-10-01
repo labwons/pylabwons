@@ -24,6 +24,7 @@ class ARCHIVE_PATH:
     else:
         COLAB = AUTO_DETECT = GITHUB
 
+
 class Archive:
 
     SRC = ARCHIVE_PATH
