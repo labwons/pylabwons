@@ -1,5 +1,5 @@
 from pylabwons.archiving.archive import Archive, ROOT
-from analytic.plugin.technical import typical_price, bollinger_band, simple_ma
+from pylabwons.analytic.plugin.technical import typical_price, bollinger_band, simple_ma
 from pandas import DataFrame
 from logging import Logger
 from time import perf_counter
