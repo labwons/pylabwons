@@ -18,7 +18,8 @@ class Indicator:
     def __getitem__(self, column:Union[Any, str]):
         return self._inst[column]
 
-    def __init__(self, data:DataFrame):
+    def __init__(self, data:DataFrame, name:str=''):
+        self._data = data.copy()
         if isinstance(data.columns, MultiIndex):
             self._is_bundle = True
             self._inst = ohlcvBundle(data)

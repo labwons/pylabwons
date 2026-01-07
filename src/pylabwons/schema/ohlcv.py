@@ -25,6 +25,10 @@ class ohlcvBundle:
         self.data = data.copy()
         return
 
+    def __iter__(self):
+        for ticker in self.tickers:
+            yield self(ticker)
+
     def __repr__(self):
         return repr(self.data)
 
@@ -40,12 +44,20 @@ class ohlcvBundle:
         return getattr(self.data, '_repr_html_')()
 
     @property
+    def stack(self) -> DataFrame:
+        objs = []
+        for ticker in self.tickers:
+            df = self(ticker)
+            df['ticker'] = ticker
+            objs.append(df)
+        return pd.concat(objs=objs, axis=0)
+
+    @property
     def tickers(self) -> List[str]:
         return self.data.columns.get_level_values(0).unique().tolist()
 
     def ticker(self, ticker:str) -> DataFrame:
-        data = self.data[ticker]
-        data.name = ticker
+        data = self.data[ticker].copy()
         return data
 
 

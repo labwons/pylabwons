@@ -13,5 +13,6 @@ dependencies = [
     "plotly",
     "pyarrow",
     "numpy",
+    "scipy",
     "ta"
 ]

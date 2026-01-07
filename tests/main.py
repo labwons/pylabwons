@@ -37,14 +37,15 @@ if __name__ == "__main__":
     # print(ticker)
     # ticker.view()
 
-    tester = lw.BackTester(unit)
-    tester.detect_rapid_drop('close', window=5, threshold=0.1)
+    tester = lw.BackTester(data)
+    tester.detect_rapid_drop('tp', window=5, threshold=0.1)
     tester.calc_return(5)
-    tester.view_signal('buy', tester['sig_rapid_drop'])
+    tester.view_gaussian('sig_rapid_drop', 5)
+    print(tester.report('sig_rapid_drop', 5))
 
-    # print(tester)
-    print(tester[tester['sig_rapid_drop'] == True])
-    tester.view()
+    # tester.view_indicator(tester['ma20'], row=1, col=1)
+    # tester.view_signal('buy', tester['sig_rapid_drop'])
+    # tester.view()
 
 
     # market = lw.Tickers(data)

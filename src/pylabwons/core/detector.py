@@ -10,6 +10,9 @@ class Detector(Indicator):
             window:int=5,
             threshold:float=0.1
     ) -> DataFrame:
+        if basis == 'tp' and not basis in self:
+            self.add_typical_price()
+
         if not 'ma20' in self:
             self.add_ma(basis=basis, window=20)
 
@@ -17,14 +20,10 @@ class Detector(Indicator):
             self.add_drawdown(basis=basis, window=window)
 
         self['sig_rapid_drop'] = (
-            (self['close'] > self['ma20']).shift(window-1) &
+            (self[basis] > self['ma20']).shift(window-1) &
             (self['dd'].rolling(window=window).min() <= -threshold) &
-            (self['dd'] >= -(0.8 * threshold)) &
-            (self['dd'] < -(0.5 * threshold))
+            (self['dd'] >= -(0.8 * threshold))
+            # (self['dd'] >= -(0.8 * threshold)) &
+            # (self['dd'] < -(0.5 * threshold))
         )
-        # mask_01 = self['dd'].rolling(window=window).min() <= -threshold
-        # mask_02 = self['dd'] <= -(0.8 * threshold)
-        # self['sig_rapid_drop'] = (mask_00 & mask_01 & mask_02)
-
-        # self['sig_rapid_drop'] = self['dd'] <= -(0.8 * threshold)
         return self['sig_rapid_drop']
