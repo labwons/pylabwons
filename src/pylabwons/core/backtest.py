@@ -29,32 +29,39 @@ class BackTester(Detector, TickerView):
         self[f'return{n}Mid'] = mid
         return
 
-    def evaluate(self, signal_name:str, n:int) -> DataFrame:
+    def serialize(self, n:int, **mask) -> DataFrame:
         cols = [f'return{n}High', f'return{n}Low', f'return{n}Mid']
-        base = self._inst.stack if self._is_bundle else self._inst
+        base = self._inst.serialize() if self._is_bundle else self._inst
         if 'ticker' in base:
             cols.append('ticker')
-        return base[base[signal_name] == True][cols].copy()
+        if mask:
+            for k, v in mask.items():
+                base = base[base[k] == v]
+        return base[cols].copy()
 
-    def report(self, signal_name:str, n:int) -> DataFrame:
-        src = self.evaluate(signal_name, n)
+    def report(self, n:int, **mask) -> DataFrame:
+        src = self.serialize(n, **mask)
         if 'ticker' in src.columns:
             src.drop(columns=['ticker'], inplace=True)
-        cnt = len(src)
+
         desc = src.describe().T
-        desc.drop(columns=["25%", "50%"], inplace=True)
-        desc[">= 4%"] = [len(src[src[col] >= 0.04]) / cnt for col in src]
-        desc[">= 0%"] = [len(src[src[col] >= 0]) / cnt for col in src]
-        desc["< 0%"] = [len(src[src[col] < 0]) / cnt for col in src]
-        desc[">= mean%"] = [len(src[src[col] >= src[col].mean()]) / cnt for col in src]
-        desc["< mean%"] = [len(src[src[col] < src[col].mean()]) / cnt for col in src]
+        desc.drop(columns=["std", "25%", "75%"], inplace=True)
+        desc['count'] = desc['count'].astype(int)
+        desc = desc.rename(columns={
+            'mean': 'meanReturn', 'min': 'minReturn', 'max': 'maxReturn', '50%': 'medianReturn',
+        })
+        desc[">= 5%"] = [len(src[src[col] >= 0.05]) / desc.loc[col, 'count'] for col in src]
+        desc[">= 4%"] = [len(src[src[col] >= 0.04]) / desc.loc[col, 'count'] for col in src]
+        desc[">= 3%"] = [len(src[src[col] >= 0.03]) / desc.loc[col, 'count'] for col in src]
+        desc[">= 0%"] = [len(src[src[col] >= 0]) / desc.loc[col, 'count'] for col in src]
+        desc[">= mean%"] = [len(src[src[col] >= src[col].mean()]) / desc.loc[col, 'count'] for col in src]
         return desc
 
-    def view_gaussian(self, signal_name:str, n:int):
-        src = self.evaluate(signal_name, n)
-        if 'ticker' in src.columns:
-            src.drop(columns=['ticker'], inplace=True)
+    def view_gaussian(self, n:int, **mask):
+        src = self.serialize(n, **mask)
         for col in src:
+            if col == 'ticker':
+                continue
             dat = src[col]
             src[f'{col}-Normalized'] = Series(
                 index=dat.index,
@@ -63,7 +70,7 @@ class BackTester(Detector, TickerView):
 
         fig = Figure()
         for col in src:
-            if col.endswith('Normalized'):
+            if col.endswith('Normalized') or col == 'ticker':
                 continue
             if col.lower().endswith('high'):
                 color = 'red'
@@ -72,6 +79,12 @@ class BackTester(Detector, TickerView):
             else:
                 color = 'green'
             dat = src.sort_values(by=col, ascending=True)
+            if len(dat) > 5e+4:
+                dat = dat.iloc[::int(len(dat) // 5e+4)]
+            text = dat['ticker'] if 'ticker' in dat.columns else None
+            hovertemplate = '%{x:.2f}% @%{meta}<extra></extra>'
+            if text is not None:
+                hovertemplate = '%{text}: ' + hovertemplate
             fig.add_trace(
                 Scatter(
                     name=col,
@@ -87,8 +100,9 @@ class BackTester(Detector, TickerView):
                     line={
                         'color': color,
                     },
+                    text=text,
                     meta=dat.index,
-                    hovertemplate='%{x:.2f}%@%{meta}<extra></extra>'
+                    hovertemplate=hovertemplate
                 )
             )
             avg = 100 * dat[col].mean()

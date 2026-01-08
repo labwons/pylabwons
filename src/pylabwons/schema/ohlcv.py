@@ -18,6 +18,11 @@ class ohlcvBundle:
         self.data = self.data.drop(columns=self.data.columns[mask])
         return
 
+    def __getattr__(self, attr:str):
+        if hasattr(self._inst, attr):
+            return getattr(self._inst, attr)
+        return super().__getattribute__(attr)
+
     def __getitem__(self, column:str):
         return self.data.xs(column, axis=1, level=1)
 
@@ -28,6 +33,9 @@ class ohlcvBundle:
     def __iter__(self):
         for ticker in self.tickers:
             yield self(ticker)
+
+    def __len__(self):
+        return len(self.tickers)
 
     def __repr__(self):
         return repr(self.data)
@@ -44,17 +52,16 @@ class ohlcvBundle:
         return getattr(self.data, '_repr_html_')()
 
     @property
-    def stack(self) -> DataFrame:
+    def tickers(self) -> List[str]:
+        return self.data.columns.get_level_values(0).unique().tolist()
+
+    def serialize(self) -> DataFrame:
         objs = []
         for ticker in self.tickers:
             df = self(ticker)
             df['ticker'] = ticker
             objs.append(df)
         return pd.concat(objs=objs, axis=0)
-
-    @property
-    def tickers(self) -> List[str]:
-        return self.data.columns.get_level_values(0).unique().tolist()
 
     def ticker(self, ticker:str) -> DataFrame:
         data = self.data[ticker].copy()
