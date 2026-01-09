@@ -1,55 +1,9 @@
-from pylabwons.schema import ohlcv, ohlcvBundle
-from pandas import DataFrame, MultiIndex, Series
-from typing import Any, Union
+from pylabwons.schema import Ohlcv
 import numpy as np
 import pandas as pd
 
 
-class Indicator:
-
-    def __call__(self, *tickers):
-        return self._inst(*tickers)
-
-    def __contains__(self, column:str):
-        return column in self._inst
-
-    def __delitem__(self, column:str):
-        del self._inst[column]
-        return
-
-    def __getattr__(self, attr:str):
-        if hasattr(self._inst, attr):
-            return getattr(self._inst, attr)
-        return super().__getattribute__(attr)
-
-    def __getitem__(self, column:Union[Any, str]):
-        return self._inst[column]
-
-    def __init__(self, data:DataFrame, name:str=''):
-        self._data = data.copy()
-        if isinstance(data.columns, MultiIndex):
-            self._is_bundle = True
-            self._inst = ohlcvBundle(data)
-        else:
-            self._is_bundle = False
-            self._inst = ohlcv(data.copy())
-        return
-
-    def __len__(self):
-        return len(self._inst)
-
-    def __repr__(self):
-        return repr(self._inst)
-
-    def __setitem__(self, column:str, data:Union[DataFrame, Series]):
-        self._inst[column] = data
-        return
-
-    def __str__(self):
-        return str(self._inst)
-
-    def _repr_html_(self):
-        return getattr(self._inst, '_repr_html_')()
+class Indicator(Ohlcv):
 
     def add_average_true_range(
             self,
@@ -58,7 +12,7 @@ class Indicator:
         rng1 = self['high'] - self['low']
         rng2 = (self['high'] - self['close'].shift(1)).abs()
         rng3 = (self['low'] - self['close'].shift(1)).abs()
-        if self._is_bundle:
+        if self.is_bundle:
             tr = rng1.combine(rng2, np.maximum).combine(rng3, np.maximum)
         else:
             tr = pd.concat({'rng1':rng1, 'rng2':rng2, 'rng3':rng3}, axis=1).max(axis=1)

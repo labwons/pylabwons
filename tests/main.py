@@ -46,17 +46,16 @@ if __name__ == "__main__":
     tester.add_obv_slope(window=12)
     tester.add_rsi(window=9)
     # print(tester)
-    print(tester.data.stack(level=0, future_stack=True))
+    # print(tester.data.stack(level=0, future_stack=True))
     # tester.detect_rapid_drop('tp', window=5, threshold=0.1)
 
-    # reverse = tester.serialize(5)
     # reverse = reverse[reverse['return5High'] >= 0.04]
     # print(tester)
     # print(reverse)
     # print(tester.report(5, sig_rapid_drop=True))
     # print(tester.report(5))
 
-    # tester.view_gaussian(5)
+    tester.view_gaussian(5)
     # tester.view_indicator(tester['ma20'], row=1, col=1)
     # tester.view_signal('buy', tester['sig_rapid_drop'])
     # tester.view()

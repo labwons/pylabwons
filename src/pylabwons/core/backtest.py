@@ -1,48 +1,37 @@
 from pandas import DataFrame, Series
 from plotly.graph_objs import Figure, Scatter
 from pylabwons.core.detector import Detector
-from pylabwons.core.viewer import TickerView
 from scipy.stats import norm
 from typing import Any, Union
 
 
-class BackTester(Detector, TickerView):
-
-    def __init__(self, ohlcv: Union[Any, DataFrame]):
-        if not isinstance(ohlcv, DataFrame):
-            try:
-                ohlcv = getattr(ohlcv, 'ohlcv')
-            except AttributeError:
-                raise TypeError()
-        Detector.__init__(self, ohlcv)
-        if not self._is_bundle:
-            TickerView.__init__(self, ohlcv)
-        return
+class BackTester(Detector):
 
     def calc_return(self, n:int):
-        base = self._inst['close'].shift(n - 1)
-        high = (self._inst['high'].rolling(n - 1).max() / base - 1).shift(-n + 1)
-        low = (self._inst['low'].rolling(n - 1).min() / base - 1).shift(-n + 1)
+        base = self['close'].shift(n - 1)
+        high = (self['high'].rolling(n - 1).max() / base - 1).shift(-n + 1)
+        low = (self['low'].rolling(n - 1).min() / base - 1).shift(-n + 1)
         mid = (high + low) / 2
         self[f'return{n}High'] = high
         self[f'return{n}Low'] = low
         self[f'return{n}Mid'] = mid
         return
 
-    def serialize(self, n:int, **mask) -> DataFrame:
-        cols = [f'return{n}High', f'return{n}Low', f'return{n}Mid']
-        base = self._inst.serialize() if self._is_bundle else self._inst
-        if 'ticker' in base:
-            cols.append('ticker')
-        if mask:
-            for k, v in mask.items():
-                base = base[base[k] == v]
-        return base[cols].copy()
+    # def serialize(self, n:int, **mask) -> DataFrame:
+    #     cols = [f'return{n}High', f'return{n}Low', f'return{n}Mid']
+    #     base = self._inst.serialize() if self._is_bundle else self._inst
+    #     if 'ticker' in base:
+    #         cols.append('ticker')
+    #     if mask:
+    #         for k, v in mask.items():
+    #             base = base[base[k] == v]
+    #     return base[cols].copy()
 
     def report(self, n:int, **mask) -> DataFrame:
-        src = self.serialize(n, **mask)
-        if 'ticker' in src.columns:
-            src.drop(columns=['ticker'], inplace=True)
+        src = self.serialize()
+        for k, v in mask.items():
+            src = src[src[k] == v]
+        src = src[[f'return{n}High', f'return{n}Low', f'return{n}Mid']]
 
         desc = src.describe().T
         desc.drop(columns=["std", "25%", "75%"], inplace=True)
@@ -58,10 +47,11 @@ class BackTester(Detector, TickerView):
         return desc
 
     def view_gaussian(self, n:int, **mask):
-        src = self.serialize(n, **mask)
-        for col in src:
-            if col == 'ticker':
-                continue
+        src = self.serialize()
+        for k, v in mask.items():
+            src = src[src[k] == v]
+
+        for col in [f'return{n}High', f'return{n}Low', f'return{n}Mid']:
             dat = src[col]
             src[f'{col}-Normalized'] = Series(
                 index=dat.index,
@@ -69,18 +59,18 @@ class BackTester(Detector, TickerView):
             )
 
         fig = Figure()
-        for col in src:
-            if col.endswith('Normalized') or col == 'ticker':
-                continue
-            if col.lower().endswith('high'):
+        for col in [f'return{n}High', f'return{n}Low', f'return{n}Mid']:
+            if col.endswith('High'):
                 color = 'red'
-            elif col.lower().endswith('low'):
+            elif col.endswith('Low'):
                 color = 'royalblue'
             else:
                 color = 'green'
+
             dat = src.sort_values(by=col, ascending=True)
             if len(dat) > 5e+4:
                 dat = dat.iloc[::int(len(dat) // 5e+4)]
+
             text = dat['ticker'] if 'ticker' in dat.columns else None
             hovertemplate = '%{x:.2f}% @%{meta}<extra></extra>'
             if text is not None:

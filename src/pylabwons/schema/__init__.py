@@ -1,8 +1,7 @@
 __all__ = [
     "trace",
-    "ohlcv",
-    "ohlcvBundle"
+    "Ohlcv",
 ]
 
-from .ohlcv import ohlcv, ohlcvBundle
+from .ohlcv import Ohlcv
 from . import trace
