@@ -1,10 +1,12 @@
-from pandas import DataFrame
+from pandas import DataFrame, MultiIndex
 from pylabwons.core import Detector, TickerView
 
 
-class Ticker(Detector, TickerView):
+class Ticker(Detector):
 
     def __init__(self, ohlcv: DataFrame):
-        Detector.__init__(self, ohlcv)
-        TickerView.__init__(self, ohlcv)
+        super().__init__(ohlcv)
+        if not self.is_bundle:
+            self.viewer = TickerView(ohlcv)
+        self.viewer.ohlcv = self.data
         return

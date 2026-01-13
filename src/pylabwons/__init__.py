@@ -5,6 +5,7 @@ __all__ = [
     "DataDict",
     "DataDictionary",
     "Detector",
+    "Ohlcv",
     "Trace",
     "Indicator",
     "Ticker",
@@ -14,5 +15,6 @@ __all__ = [
 from .api import Ticker
 from .core import BackTester, Detector, Indicator, TickerView
 from .utils import DD, DataDict, DataDictionary
+from .schema import Ohlcv
 from .schema import trace as Trace
 from . import constants as CONST

@@ -46,7 +46,7 @@ class Volume(Bar):
             marker={
                 'color': data.apply(lambda r: RISE if r["close"] >= r["open"] else FALL, axis=1)
             },
-            xhoverformat="%Y/%m/%d",
+            xhoverformat=xhoverformat,
             yhoverformat=",d",
             hovertemplate="%{y}<extra></extra>"
         )

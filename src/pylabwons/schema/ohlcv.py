@@ -8,8 +8,8 @@ class Ohlcv:
 
     is_bundle = False
 
-    def __new__(cls, data:DataFrame):
-        cls.is_bundle = isinstance(data.columns, MultiIndex)
+    def __new__(cls, ohlcv:DataFrame):
+        cls.is_bundle = isinstance(ohlcv.columns, MultiIndex)
         return super().__new__(cls)
 
     def __call__(self, *tickers) -> DataFrame:
