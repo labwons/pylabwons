@@ -2,30 +2,26 @@ from pandas import DataFrame, Series
 from plotly.graph_objs import Figure, Scatter
 from pylabwons.core.detector import Detector
 from scipy.stats import norm
-from typing import Any, Union
+import numpy as np
 
 
 class BackTester(Detector):
 
-    def calc_return(self, n:int):
+    def calc_return(self, n:int ):
         base = self['close'].shift(n - 1)
+        close = (self['close'].rolling(n - 1).max() / base - 1).shift(-n + 1)
         high = (self['high'].rolling(n - 1).max() / base - 1).shift(-n + 1)
         low = (self['low'].rolling(n - 1).min() / base - 1).shift(-n + 1)
         mid = (high + low) / 2
+        self[f'return{n}'] = close
         self[f'return{n}High'] = high
         self[f'return{n}Low'] = low
         self[f'return{n}Mid'] = mid
         return
 
-    # def serialize(self, n:int, **mask) -> DataFrame:
-    #     cols = [f'return{n}High', f'return{n}Low', f'return{n}Mid']
-    #     base = self._inst.serialize() if self._is_bundle else self._inst
-    #     if 'ticker' in base:
-    #         cols.append('ticker')
-    #     if mask:
-    #         for k, v in mask.items():
-    #             base = base[base[k] == v]
-    #     return base[cols].copy()
+    def calc_log_return(self):
+        self['log_return'] = np.log(self['close'] / self['close'].shift(1))
+        return
 
     def report(self, n:int, **mask) -> DataFrame:
         src = self.serialize()

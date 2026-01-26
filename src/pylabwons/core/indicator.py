@@ -35,12 +35,14 @@ class Indicator(Ohlcv):
         width = 100 * ((upper - lower) / middle)
         upper_trend = middle + (std / 2) * dev
         lower_trend = middle - (std / 2) * dev
+        pct_b = ((self[basis] - lower) / (upper - lower)) * 2 - 1
         self['bb_middle'] = middle
         self['bb_upper'] = upper
         self['bb_lower'] = lower
         self['bb_width'] = width
         self['bb_upper_trend'] = upper_trend
         self['bb_lower_trend'] = lower_trend
+        self['bb_pct_b'] = pct_b
         return
 
     def add_drawdown(
@@ -124,7 +126,7 @@ class Indicator(Ohlcv):
         self['obv_slope'] = obv_slope
         return
 
-    def add_rsi(self, window:int=14):
+    def add_rsi(self, window:int=14, offset:int=0):
         delta = self['close'].diff()
         gain = delta.where(delta > 0, 0)
         loss = -delta.where(delta < 0, 0)
@@ -133,6 +135,8 @@ class Indicator(Ohlcv):
         avg_loss = loss.ewm(alpha=1/window, min_periods=window, adjust=False).mean()
         rs = avg_gain / avg_loss
         rsi = 100 - 100 / (1 + rs)
+        if offset:
+            rsi = rsi + offset
         self['rsi'] = rsi
         return
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pylabwons"
-version = "1.0.0"
+version = "1.0.1"
 description = "SNOWBALL REVERSES LABWONS"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -12,6 +12,7 @@ dependencies = [
     "pandas",
     "plotly",
     "pyarrow",
+    "pykrx",
     "numpy",
     "scipy",
     "ta"

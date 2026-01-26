@@ -37,8 +37,12 @@ class Ohlcv:
         except AttributeError:
             return super().__getattribute__(attr)
 
-    def __getitem__(self, col:Union[Any, int, slice, str]) -> Union[DataFrame, Series]:
+    def __getitem__(self, col:Union[Any, int, slice, str, tuple]) -> Union[DataFrame, Series]:
         if self.is_bundle:
+            if col in self.columns.get_level_values(0).unique():
+                return self.data[col]
+            if col in self.columns:
+                return self.data[col]
             return self.data.xs(col, axis=1, level=1)
         return self.data[col]
 

@@ -1,16 +1,16 @@
 from pandas import DataFrame, Series
 from pandas.api.types import is_integer_dtype
-from plotly.graph_objs import Figure
+from plotly.graph_objs import Candlestick, Figure
 from pylabwons.schema import trace
 from pylabwons.constants import LAYOUT, LEGEND, XAXIS, YAXIS
-from typing import Callable
+from typing import Any, Callable, List, Union
 
 
 class TickerView(Figure):
 
     ohlcv: DataFrame
 
-    def __call__(self, renderer:str='browser'):
+    def __call__(self, renderer:Union[Any, None, str]=None):
         self.view(renderer)
         return
 
@@ -71,7 +71,19 @@ class TickerView(Figure):
         return
 
     @property
-    def template(self) -> str:
+    def margin(self):
+        return self.layout.margin
+
+    @margin.setter
+    def margin(self, margin:Union[int, dict, float]):
+        if isinstance(margin, dict):
+            self.update_layout(margin=margin)
+        else:
+            self.update_layout(margin={'t':margin, 'l':margin, 'b':margin, 'r':margin})
+        return
+
+    @property
+    def template(self):
         return self.layout.template
 
     @template.setter
@@ -82,14 +94,26 @@ class TickerView(Figure):
         self.update_xaxes(row=1, col=1, patch=xaxis)
         self.update_layout(
             template=template,
-            **LAYOUT(
-                plot_bgcolor=None,
-                legend=LEGEND()
-            )
+            plot_bgcolor=None
         )
         return
 
-    def view(self, renderer:str='browser'):
+    def auto_scale(self, x_range:List):
+        n1, n2 = self.ohlcv.index.get_loc(x_range[0]), self.ohlcv.index.get_loc(x_range[1])
+        for tr in self.data:
+            yaxis = self.layout[tr['yaxis'].replace("y", "yaxis")]
+            if isinstance(tr, Candlestick) or isinstance(tr, trace.Candles):
+                mx = max(tr['high'][n1:n2])
+                mn = min(tr['low'][n1:n2])
+            else:
+                mx = max(tr['y'][n1:n2])
+                mn = min(tr['y'][n1:n2])
+            yaxis['autorange'] = False
+            yaxis['range'] = [0.95 * mn, 1.05 * mx]
+        view.update_xaxes(autorange=False, range=x_range)
+        return
+
+    def view(self, renderer:Union[Any, None, str]=None):
         self.show(renderer)
         return
 
@@ -98,3 +122,4 @@ if __name__ == '__main__':
     viewer = TickerView(DataFrame(columns=['open', 'high', 'low', 'close', 'volume']))
     viewer.template = 'plotly_dark'
     viewer.add_row()
+    viewer.auto_scale([])
