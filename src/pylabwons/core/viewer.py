@@ -83,6 +83,15 @@ class TickerView(Figure):
         return
 
     @property
+    def height(self):
+        return self.layout.height
+
+    @height.setter
+    def height(self, height:Union[int, float]):
+        self.update_layout(height=height)
+        return
+
+    @property
     def template(self):
         return self.layout.template
 
@@ -110,7 +119,7 @@ class TickerView(Figure):
                 mn = min(tr['y'][n1:n2])
             yaxis['autorange'] = False
             yaxis['range'] = [0.95 * mn, 1.05 * mx]
-        view.update_xaxes(autorange=False, range=x_range)
+        self.update_xaxes(autorange=False, range=x_range)
         return
 
     def view(self, renderer:Union[Any, None, str]=None):
