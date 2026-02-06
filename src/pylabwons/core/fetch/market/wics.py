@@ -1,0 +1,93 @@
+from pylabwons.core.fetch.market.schema import wics as SCHEMA
+from pylabwons.utils.logger import Logger
+from pandas import DataFrame
+import pandas as pd
+import re, requests, time
+
+
+class WiseICS(DataFrame):
+    # WISE INDUSTRY CLASSIFICATION SYSTEM
+
+    logger = None
+    def __new__(cls):
+        if not cls.logger:
+            cls.logger = Logger(console=False)
+        return super().__new__(cls)
+
+    def __init__(self, src:str=''):
+        if src.endswith('.parquet'):
+            super().__init__(pd.read_parquet(src, engine='pyarrow'))
+        else:
+            super().__init__()
+        return
+
+    def fetch(self):
+        tic = time.perf_counter()
+        date = self._fetch_date()
+        self.logger(f'FETCH WICS ON {date}')
+
+        objs = []
+        for n, (code, name) in enumerate(SCHEMA.CODES.items()):
+            objs.append(self._fetch_group(code, date))
+
+        reits = DataFrame(data={'CMP_KOR': SCHEMA.REITS.values(), 'CMP_CD': SCHEMA.REITS.keys()})
+        reits[['SEC_CD', 'IDX_CD', 'SEC_NM_KOR', 'IDX_NM_KOR']] = ['G99', 'WI999', '리츠', '리츠']
+        objs.append(reits)
+
+        data:DataFrame = pd.concat(objs, axis=0, ignore_index=True)
+        data.drop(inplace=True, columns=[key for key in data if not key in SCHEMA.LABELS])
+        data.drop(inplace=True, index=data[data['SEC_CD'].isna()].index)
+        data.rename(inplace=True, columns=SCHEMA.LABELS)
+        data.set_index(inplace=True, keys="ticker")
+        data['industryName'] = data['industryName'].str.replace("WI26 ", "")
+
+        sc_mdi = data[(data['industryCode'] == 'WI330') & (data['sectorCode'] == 'G50')].index
+        sc_edu = data[(data['industryCode'] == 'WI330') & (data['sectorCode'] == 'G25')].index
+        sc_sw = data[(data['industryCode'] == 'WI600') & (data['sectorCode'] == 'G50')].index
+        sc_it = data[(data['industryCode'] == 'WI600') & (data['sectorCode'] == 'G45')].index
+        data.loc[sc_mdi, 'industryCode'], data.loc[sc_mdi, 'industryName'] = 'WI331', '미디어'
+        data.loc[sc_edu, 'industryCode'], data.loc[sc_edu, 'industryName'] = 'WI332', '교육'
+        data.loc[sc_sw, 'industryCode'], data.loc[sc_sw, 'industryName'] = 'WI601', '소프트웨어'
+        data.loc[sc_it, 'industryCode'], data.loc[sc_it, 'industryName'] = 'WI602', 'IT서비스'
+
+        adder = {}
+        for key in SCHEMA.EXCEPTIONS:
+            if not key in data.index:
+                adder[key] = SCHEMA.EXCEPTIONS[key]
+        exceptions = DataFrame(adder).T
+        data = pd.concat(objs=[data, exceptions], axis=0)
+        data['date'] = date
+        self.logger(f'{"." * 30} {len(data)} STOCKS / RUNTIME: {time.perf_counter() -  tic:.2f}s')
+        super().__init__(data)
+        return
+
+
+    @classmethod
+    def _fetch_date(cls) -> str:
+        return re.compile(r"var\s+dt\s*=\s*'(\d{8})'") \
+            .search(requests.get(SCHEMA.URL.BASE).text) \
+            .group(1)
+
+    @classmethod
+    def _fetch_group(cls, code: str, date: str = "", countdown: int = 5) -> DataFrame:
+        cls.logger(f'>>> {SCHEMA.CODES[code]}@{code}', end=' ... ')
+        try:
+            resp = requests.get(SCHEMA.URL.SECTOR(date, code))
+        except Exception as reason:
+            cls.logger(f'NG: {reason}')
+            return DataFrame()
+
+        if not resp.status_code == 200:
+            if countdown == 0:
+                cls.logger(f'NG: TIMEOUT / {resp.status_code}')
+                return DataFrame()
+            else:
+                time.sleep(5)
+                return cls._fetch_group(code, date, countdown - 1)
+        if "hmg-corp" in resp.text:
+            cls.logger(f'NG: BLOCKED')
+            return DataFrame()
+        cls.logger(f'OK')
+        return DataFrame(resp.json()['list'])
+
+

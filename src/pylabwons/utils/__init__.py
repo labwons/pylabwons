@@ -2,9 +2,9 @@ __all__ = [
     "DD",
     "DataDict",
     "DataDictionary",
-    "TradingDates",
+    "TradingDate",
 ]
 
-from .datadict import DD, DataDict, DataDictionary
-from .tradingdates import TradingDates
+from pylabwons.schema.datadict import DD, DataDict, DataDictionary
+from .tradingdate import TradingDate
 

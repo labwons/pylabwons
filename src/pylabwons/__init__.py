@@ -1,4 +1,5 @@
 __all__ = [
+    "AfterMarket",
     "BackTester",
     "CONST",
     "DD",
@@ -10,12 +11,14 @@ __all__ = [
     "Indicator",
     "Ticker",
     "TickerView",
-    "TradingDates",
+    "TradingDate",
+    "WiseICS",
 ]
 
 from .api import Ticker
 from .core import BackTester, Detector, Indicator, TickerView
-from .utils import DD, DataDict, DataDictionary, TradingDates
+from .core.fetch import AfterMarket, WiseICS
+from .utils import DD, DataDict, DataDictionary, TradingDate
 from .schema import Ohlcv
 from .schema import trace as Trace
 from . import constants as CONST

@@ -4,11 +4,12 @@ pd.set_option('display.expand_frame_repr', False)
 
 
 if __name__ == "__main__":
-
-    key = 'KRW-H'
-    src = r"E:\SIDEPROJ\labwons-analytic\src\analysis\archive\baseline.parquet"
-    data = pd.read_parquet(src, engine='pyarrow')
-    unit = data[key].copy()
+    print(lw.AfterMarket)
+    print(lw.WiseICS)
+    # key = 'KRW-H'
+    # src = r"E:\SIDEPROJ\labwons-analytic\src\analysis\archive\baseline.parquet"
+    # data = pd.read_parquet(src, engine='pyarrow')
+    # unit = data[key].copy()
 
     # single = lw.Indicator(data[key])
     # single.add_typical_price()
@@ -60,5 +61,5 @@ if __name__ == "__main__":
     # tester.view_signal('buy', tester['sig_rapid_drop'])
     # tester.view()
 
-    viewer = lw.TickerView(unit)
-    viewer.view()
+    # viewer = lw.TickerView(unit)
+    # viewer.view()
