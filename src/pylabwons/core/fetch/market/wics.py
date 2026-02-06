@@ -9,7 +9,7 @@ class WiseICS(DataFrame):
     # WISE INDUSTRY CLASSIFICATION SYSTEM
 
     logger = None
-    def __new__(cls):
+    def __new__(cls, src:str=''):
         if not cls.logger:
             cls.logger = Logger(console=False)
         return super().__new__(cls)
@@ -91,3 +91,6 @@ class WiseICS(DataFrame):
         return DataFrame(resp.json()['list'])
 
 
+if __name__ == "__main__":
+    wics = WiseICS(r'E:\SIDEPROJ\pylabwons-archive\data\src\wics.parquet')
+    print(wics)

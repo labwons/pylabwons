@@ -12,7 +12,7 @@ pd.set_option('future.no_silent_downcasting', True)
 class AfterMarket(DataFrame):
 
     logger = None
-    def __new__(cls):
+    def __new__(cls, src:str=''):
         if not cls.logger:
             cls.logger = Logger(console=False)
         return super().__new__(cls)
