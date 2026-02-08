@@ -5,7 +5,7 @@ from typing import Dict, Union
 from xml.etree.ElementTree import Element, ParseError, fromstring
 import numpy as np
 import pandas as pd
-import requests, re, time
+import random, requests, re, time
 
 
 class FnGuide:
@@ -28,17 +28,34 @@ class FnGuide:
         return float(value) if "." in value or "-" in value else int(value)
 
     @staticmethod
-    def fetch(url: str, encoding: str = 'euc-kr') -> requests.Response:
-        n = 5
-        while n >= 0:
-            resp = requests.get(url, headers=SCHEMA.HEADER)
-            if resp.status_code == 200:
-                resp.encoding = encoding
-                return resp
-            else:
-                time.sleep(5)
-                n -= 1
-        raise ConnectionError(f'Failed to fetch data from FnGuide: {url}')
+    def fetch(url: str, encoding: str = "euc-kr") -> requests.Response:
+        session = requests.Session()
+
+        for attempt in range(5):
+            try:
+                resp = session.get(
+                    url,
+                    headers=SCHEMA.HEADER,
+                    timeout=(3, 10)
+                )
+
+                if resp.status_code == 200:
+                    resp.encoding = encoding
+                    return resp
+
+                # 502/503은 서버 문제 → backoff
+                if resp.status_code in (502, 503, 504):
+                    time.sleep(3 + random.random() * 5)
+                    continue
+
+                # 403/429면 사실상 차단
+                if resp.status_code in (403, 429):
+                    raise PermissionError(f"Blocked: {resp.status_code}")
+
+            except requests.RequestException:
+                time.sleep(3 + random.random() * 5)
+
+        raise ConnectionError(f"Failed to fetch after retries: {url}")
 
     def _statement(self, tag: str) -> DataFrame:
         try:

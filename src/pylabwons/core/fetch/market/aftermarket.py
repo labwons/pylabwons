@@ -12,13 +12,13 @@ pd.set_option('future.no_silent_downcasting', True)
 class AfterMarket(DataFrame):
 
     logger = None
-    def __new__(cls, src:str=''):
+    def __new__(cls, *args, **kwargs):
         if not cls.logger:
-            cls.logger = Logger(console=False)
+            cls.logger = Logger(console=kwargs.get('console', False))
         return super().__new__(cls)
 
     def __init__(self, src:str=''):
-        if src.endswith('.parquet'):
+        if str(src).endswith('.parquet'):
             super().__init__(pd.read_parquet(src, engine='pyarrow'))
         else:
             super().__init__()

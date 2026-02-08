@@ -9,13 +9,13 @@ class WiseICS(DataFrame):
     # WISE INDUSTRY CLASSIFICATION SYSTEM
 
     logger = None
-    def __new__(cls, src:str=''):
+    def __new__(cls, *args, **kwargs):
         if not cls.logger:
-            cls.logger = Logger(console=False)
+            cls.logger = Logger(console=kwargs.get('console', False))
         return super().__new__(cls)
 
     def __init__(self, src:str=''):
-        if src.endswith('.parquet'):
+        if str(src).endswith('.parquet'):
             super().__init__(pd.read_parquet(src, engine='pyarrow'))
         else:
             super().__init__()
@@ -27,7 +27,8 @@ class WiseICS(DataFrame):
         self.logger(f'FETCH WICS ON {date}')
 
         objs = []
-        for n, (code, name) in enumerate(SCHEMA.CODES.items()):
+        for n, (code, name) in enumerate(SCHEMA.CODES.items(), start=1):
+            self.logger(f'>>> [{n}/{len(SCHEMA.CODES)}]{name}@{code}', end=' ... ')
             objs.append(self._fetch_group(code, date))
 
         reits = DataFrame(data={'CMP_KOR': SCHEMA.REITS.values(), 'CMP_CD': SCHEMA.REITS.keys()})
@@ -70,7 +71,6 @@ class WiseICS(DataFrame):
 
     @classmethod
     def _fetch_group(cls, code: str, date: str = "", countdown: int = 5) -> DataFrame:
-        cls.logger(f'>>> {SCHEMA.CODES[code]}@{code}', end=' ... ')
         try:
             resp = requests.get(SCHEMA.URL.SECTOR(date, code))
         except Exception as reason:
