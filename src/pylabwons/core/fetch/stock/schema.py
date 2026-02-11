@@ -1,7 +1,14 @@
 from pylabwons.schema.datadict import DataDictionary
 
-
 URLS = lambda ticker: DataDictionary(
+    SNAPSHOT=f"http://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?" \
+             f"pGB=1&" \
+             f"gicode=A{ticker}&" \
+             f"cID=&" \
+             f"MenuYn=Y" \
+             f"&ReportGB=" \
+             f"&NewMenuID=" \
+             f"&stkGb=701",
     BANDS=f"http://cdn.fnguide.com/SVO2/json/chart/01_06/chart_A{ticker}_D.json",
     FOREIGNRATE3M=f"http://cdn.fnguide.com/SVO2/json/chart/01_01/chart_A{ticker}_3M.json",
     FOREIGNRATE1Y=f"http://cdn.fnguide.com/SVO2/json/chart/01_01/chart_A{ticker}_1Y.json",
@@ -11,15 +18,32 @@ URLS = lambda ticker: DataDictionary(
     XML=f"http://cdn.fnguide.com/SVO2/xml/Snapshot_all/{ticker}.xml"
 )
 
-STATEMENT_EXCLUDE = [
-    '영업이익(발표기준)', '자본금(억원)',
-    '지배주주순이익(억원)', '비지배주주순이익(억원)', '순이익률(%)',
-    '지배주주지분(억원)', '비지배주주지분(억원)', '지배주주순이익률(%)',
-    '발행주식수(천주)',
-]
-
 HEADER = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
-    "Referer": "https://www.google.com"
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/133.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "ko-KR,ko;q=0.9",
+    "Referer": "https://comp.fnguide.com/",
+    "Connection": "keep-alive",
+}
+
+LABEL_ESTIMATION = {
+    "투자의견": "estimation",
+    "목표주가": "targetPrice",
+    "EPS": "estimatedEps",
+    "PER": "estimatedPer",
+    "추정기관수": "estimationCount"
+}
+
+KEY_CHANGE_RATE = {
+    "영업이익": "profit",
+    "당기순이익": "netProfit",
+    "자산총계": "asset",
+    "부채총계": "debt",
+    "영업이익률": "profitRate",
+    "EPS": "eps",
+    "DPS": "dps"
 }
