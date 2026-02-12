@@ -4,6 +4,7 @@ from functools import cached_property
 from pandas import DataFrame
 from typing import Dict, Iterator
 import pandas as pd
+import time
 
 
 class Fundamentals(DataFrame):
