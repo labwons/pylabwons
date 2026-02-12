@@ -6,6 +6,7 @@ pd.set_option('display.expand_frame_repr', False)
 if __name__ == "__main__":
     print(lw.AfterMarket)
     print(lw.WiseICS)
+    print(lw.Fundamentals)
     # key = 'KRW-H'
     # src = r"E:\SIDEPROJ\labwons-analytic\src\analysis\archive\baseline.parquet"
     # data = pd.read_parquet(src, engine='pyarrow')

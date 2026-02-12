@@ -7,7 +7,7 @@ __all__ = [
     "DataDictionary",
     "Detector",
     "FnGuide",
-    "Numbers",
+    "Fundamentals",
     "Ohlcv",
     "Trace",
     "Indicator",
@@ -19,7 +19,7 @@ __all__ = [
 
 from .api import Ticker
 from .core import BackTester, Detector, Indicator, TickerView
-from .core.fetch import AfterMarket, FnGuide, Numbers, WiseICS
+from .core.fetch import AfterMarket, FnGuide, Fundamentals, WiseICS
 from .utils import DD, DataDict, DataDictionary, TradingDate
 from .schema import Ohlcv
 from .schema import trace as Trace
