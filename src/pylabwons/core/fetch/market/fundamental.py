@@ -16,9 +16,11 @@ class Fundamentals(DataFrame):
         return super().__new__(cls)
 
     def __init__(self, src:str=''):
-        if str(src).endswith('.parquet'):
+        if not src:
+            src = 'https://github.com/labwons/pylabwons-archive/raw/refs/heads/main/data/src/fundamentals.parquet'
+        try:
             super().__init__(pd.read_parquet(src, engine='pyarrow'))
-        else:
+        except Exception:
             super().__init__()
         return
 

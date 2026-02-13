@@ -93,7 +93,7 @@ class FnGuide:
         base['배당성향'] = round(100 * (1000 * base['발행주식수']) * base['DPS'] / (base['당기순이익'] * 1e+8), 2)
 
         # 최근 결산년도 주요 확정 실적 취합
-        fiscal:Series = base.loc[fiscal_year]
+        fiscal: Series = base.loc[fiscal_year]
         data = Series(data=dict(
             fiscalYear=fiscal_year,
             sales=fiscal[base.columns[0]],
@@ -136,12 +136,12 @@ class FnGuide:
 
     @staticmethod
     def _typecast(value: str) -> Union[int, float, str]:
-        value = str(value)
+        value = str(value).replace(" ", "").replace("%", "").replace(",", "")
         if value in ['-', 'nan']:
             return np.nan
         if any([c in value for c in ['/', '*']]) or all([c.isalpha() for c in value]):
             return value
-        value = value.lower().replace(",", "")
+        value = value.lower()
         if not any([char.isdigit() for char in value]):
             return np.nan
         return float(value) if "." in value or "-" in value else int(value)
@@ -179,11 +179,23 @@ class FnGuide:
 
     @cached_property
     def annual_statement_consolidate(self) -> DataFrame:
-        return self._src2statement(self._snapshot_tables[11])
+        if len(self._snapshot_tables) == 17:
+            n = 11
+        elif len(self._snapshot_tables) == 15:
+            n = 9
+        else:
+            raise IndexError(f"Unexpected number of snapshot tables for {self.ticker}")
+        return self._src2statement(self._snapshot_tables[n])
 
     @cached_property
     def annual_statement_separate(self) -> DataFrame:
-        return self._src2statement(self._snapshot_tables[14])
+        if len(self._snapshot_tables) == 17:
+            n = 14
+        elif len(self._snapshot_tables) == 15:
+            n = 12
+        else:
+            raise IndexError(f"Unexpected number of snapshot tables for {self.ticker}")
+        return self._src2statement(self._snapshot_tables[n])
 
     @cached_property
     def date(self) -> str:
@@ -191,7 +203,13 @@ class FnGuide:
 
     @cached_property
     def estimation(self) -> Series:
-        data = self._snapshot_tables[7].rename(columns=SCHEMA.LABEL_ESTIMATION).T[0]
+        if len(self._snapshot_tables) == 17:
+            n = 7
+        elif len(self._snapshot_tables) == 15:
+            n = 5
+        else:
+            raise IndexError(f"Unexpected number of snapshot tables for {self.ticker}")
+        data = self._snapshot_tables[n].rename(columns=SCHEMA.LABEL_ESTIMATION).T[0]
         return data.map(self._typecast)
 
     @cached_property
@@ -211,11 +229,23 @@ class FnGuide:
 
     @cached_property
     def quarter_statement_consolidate(self) -> DataFrame:
-        return self._src2statement(self._snapshot_tables[12])
+        if len(self._snapshot_tables) == 17:
+            n = 12
+        elif len(self._snapshot_tables) == 15:
+            n = 10
+        else:
+            raise IndexError(f"Unexpected number of snapshot tables for {self.ticker}")
+        return self._src2statement(self._snapshot_tables[n])
 
     @cached_property
     def quarter_statement_separate(self) -> DataFrame:
-        return self._src2statement(self._snapshot_tables[15])
+        if len(self._snapshot_tables) == 17:
+            n = 15
+        elif len(self._snapshot_tables) == 15:
+            n = 13
+        else:
+            raise IndexError(f"Unexpected number of snapshot tables for {self.ticker}")
+        return self._src2statement(self._snapshot_tables[n])
 
     @cached_property
     def numbers(self) -> Series:
@@ -225,7 +255,6 @@ class FnGuide:
         float_shares = table.iloc[6, 1].replace(' ', '').split('/')
 
         data = Series(name=self.ticker)
-        data['ticker'] = str(self.ticker)
         data['date'] = self.date
         data['close'] = table.columns[1].replace(' ', '').split("/")[0]
         data['fiftyTwoWeekHigh'] = fifty_two_weeks[0]
@@ -236,7 +265,7 @@ class FnGuide:
         data['sharesPreferred'] = shares_outstanding[1]
         data['sharesFloating'] = float_shares[0]
         data['sharesFloatingRate'] = float_shares[1]
-        data['ifrsType'] = self.gb
+        data['ifrsType'] = self.gb if not self.ticker in SCHEMA.NUMBER_EXCEPTION else np.nan
 
         tree = html.fromstring(self._snapshot_text)
         for dl in tree.xpath('//div[@id="corp_group2"]/dl'):
@@ -249,12 +278,18 @@ class FnGuide:
                 data['industryPE'] = dl.xpath('./dd/text()')[0].strip()
             if key == "PBR":
                 data['fiscalPriceToBook'] = dl.xpath('./dd/text()')[0].strip()
+            if self.ticker in SCHEMA.NUMBER_EXCEPTION:
+                if key == "배당수익률":
+                    data['dividendYield'] = dl.xpath('./dd/text()')[0].strip()
 
         data = data.map(self._typecast)
         data['fiscalEps'] = round(data.close / data.fiscalPE, 2) if data.fiscalPE > 0 else np.nan
         data['forwardEps'] = round(data.close / data.fowardPE, 2) if data.fowardPE > 0 else np.nan
-        data = pd.concat(
-            [data, self.estimation, self._statement2numbers(self.annual_statement, self.quarter_statement)])
+        if not self.ticker in SCHEMA.NUMBER_EXCEPTION:
+            data = pd.concat(
+                [data, self.estimation, self._statement2numbers(self.annual_statement, self.quarter_statement)]
+            )
+        data.name = self.ticker
         return data
 
 if __name__ == "__main__":

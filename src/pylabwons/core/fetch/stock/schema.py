@@ -47,3 +47,6 @@ KEY_CHANGE_RATE = {
     "EPS": "eps",
     "DPS": "dps"
 }
+
+# IFRS 공시가 없는 종목
+NUMBER_EXCEPTION = ['088980', '094800', '415640']
