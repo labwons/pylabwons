@@ -5,3 +5,4 @@ __all__ = [
 
 from .ohlcv import Ohlcv
 from . import trace
+from .datadict import DataDictionary

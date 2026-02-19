@@ -36,6 +36,8 @@ class Fundamentals(DataFrame):
             except Exception as e:
                 self.logger(f">>> Error while fetching: {ticker} / {e}")
                 continue
-        super().__init__(pd.concat(objs, axis=1))
+            if n and n % 50 == 0:
+                time.sleep(3)
+        super().__init__(pd.concat(objs, axis=1).T)
         self.logger(f'{"." * 30} {len(self)} STOCKS / RUNTIME: {time.perf_counter() - tic:.2f}s')
         return
