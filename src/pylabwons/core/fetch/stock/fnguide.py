@@ -1,4 +1,5 @@
 from pylabwons.core.fetch.stock import schema as SCHEMA
+from datetime import datetime
 from functools import cached_property
 from io import StringIO
 from lxml import html
@@ -45,99 +46,122 @@ class FnGuide:
             if abs(arr[0]) <= 0.1:
                 return np.nan
             if arr[0] < 0 < arr[1]:
-                return 9999.9999
+                return 9999.9999  # 흑자 전환
             if arr[0] > 0 > arr[1]:
-                return -9999.9999
+                return -9999.9999  # 적자 전환
             if arr[0] < 0 and arr[1] < 0:
-                return -9999.9998
+                return -9999.9998  # 적자 지속
             return round(100 * (arr[1] - arr[0]) / abs(arr[0]), 2)
 
+        def __separate_confirmed_estimated(st: DataFrame):
+            """
+            잠정 실적(P)이 존재하는 경우 잠정 실적을 확정 실적에 준하여 계산에 사용
+            """
+            _confirmed = st[~st.index.str.contains(r"\(|\)")].copy()
+            _estimated = st[~st.index.isin(_confirmed.index)].copy()
+            if _estimated.index[0].endswith('(P)'):
+                prov = _estimated.iloc[[0]].copy()  # 최근 잠정 실적
+                _confirmed = pd.concat([_confirmed, prov], axis=0)
+                _estimated.drop(index=_estimated.index[0], inplace=True)
+            return _confirmed, _estimated
+
         # 확정 실적과 추정/잠정 실적 분리
-        st = yy.copy()
-        confirmed = st[~st.index.str.contains(r"\(|\)")].copy()
-        estimated = st[~st.index.isin(confirmed.index)].copy()
-        fiscal_year = confirmed.index[-1]
+        confirmed_yy, estimated_yy = __separate_confirmed_estimated(yy)
+        confirmed_qq, _ = __separate_confirmed_estimated(qq)
+        trailing = confirmed_qq.iloc[-4:].sum()
 
-        # 분기 실적의 경우 같은 연도로 시작하는 실적이 4개인 경우 추출
-        qq = qq.copy()
-        mask = qq.groupby(qq.index.str[:4]).count().max(axis=1)
-        year = mask[mask == 4]
-        if not year.empty:
-            qq = qq[qq.index.str.startswith(year.index[0])]
+        # 매출처 이름
+        sales_col = confirmed_yy.columns[0]
+        fiscal_month = confirmed_yy.index[-1]
 
-        # 잠정 실적이 존재하는 경우 잠정 실적을 확정 실적에 준하여 계산에 사용
-        # 잠정 실적 중 결측치는 이전 결산년도로 채움
-        if estimated.index[0].endswith('(P)'):
-            fiscal_year = estimated.index[0]
-            prov = estimated.iloc[[0]].copy()
-            prev = confirmed.iloc[[-1]].copy()
-            prov.index = prev.index = [0]
-            prov = prov.combine_first(prev)
-            prov.index = [estimated.index[0]]
-            prov['DPS'] = qq['DPS'].sum()
-            confirmed = pd.concat([confirmed, prov], axis=0)
-            estimated.drop(index=estimated.index[0], inplace=True)
+        # 계산용 데이터
+        # - 정적 데이터: 확정/잠정 실적 + 추정 실적 1개년
+        # - 동적 데이터: 확정/잠정 실적 + 추정 실적 1개년에 대한 변화율
+        #   @[{"매출", "이자수익", "보험수익"}, "영업이익", "당기순이익",
+        #     "자산총계", "부채총계", "영업이익률", "EPS", "DPS"]
+        columns = SCHEMA.KEY_CHANGE_RATE.copy()
+        columns.update({sales_col: "sales", "배당성향": "payoutRatio"})
 
-        # 3분기 실적이 발표되고 해가 바뀐 경우
-        # 3개 분기 합산의 연장 값을 계산 값으로 활용
-        # TODO
+        static = pd.concat([confirmed_yy, estimated_yy.iloc[[0]]])
+
+        # 배당성향 계산
+        # - 잠정 실적에 DPS가 존재하는 경우, 직전 확정 실적과 최근 4분기 합산 DPS 중 큰 값으로 대체
+        if fiscal_month.endswith('(P)') and not pd.isna(static.at[fiscal_month, 'DPS']):
+            static.at[fiscal_month, 'DPS'] \
+                = max(static.at[confirmed_yy.index[-2], 'DPS'], trailing['DPS'])
+        static['발행주식수'] = static['발행주식수'].ffill()
+        static['배당성향'] = round(100 * (1000 * static['발행주식수']) * static['DPS'] / (static['당기순이익'] * 1e+8), 2)
+
+        # 변화율(성장률) 계산
+        # - 잠정 실적이 존재하는 경우, 결측치는 직전 확정실적으로 대체
+        dynamic_fiscal = static[columns.keys()] \
+            .rename(columns=columns) \
+            .rolling(2) \
+            .apply(__growth, raw=True) \
+            .replace({9999.9999: "흑자전환", -9999.9999: "적자전환", -9999.9998: "적자지속"})
+        if fiscal_month.endswith('(P)'):
+            rebase = static.ffill().copy()
         else:
-            qq = qq[~qq.index.str.contains(r"\(|\)")].copy()
-            # if (len(qq) >= 3):
+            rebase = static.copy()
+        dynamic_estimated = rebase[columns.keys()] \
+            .rename(columns=columns) \
+            .rolling(2) \
+            .apply(__growth, raw=True) \
+            .replace({9999.9999: "흑자전환", -9999.9999: "적자전환", -9999.9998: "적자지속"})
 
-            pass
-
-        # 최근 확정 실적 2개년과 추정 실적 1개년을 병합
-        base = pd.concat([confirmed.iloc[-2:], estimated.iloc[[0]]])
-        base['발행주식수'] = base['발행주식수'].ffill()
-        base['배당성향'] = round(100 * (1000 * base['발행주식수']) * base['DPS'] / (base['당기순이익'] * 1e+8), 2)
-
-        # 최근 결산년도 주요 확정 실적 취합
-        fiscal: Series = base.loc[fiscal_year]
+        # 최근 4분기 합산 실적 및 최근 결산년도 주요 확정 실적 취합
+        # - 최근 결산년도 EPS는 별도 계산
+        # - 결측치는 직전 회계년도 실적으로 대체
+        fiscal = static.loc[fiscal_month].copy()
+        fiscal = fiscal.combine_first(static.loc[confirmed_yy.index[-2]])
         data = Series(data=dict(
-            fiscalYear=fiscal_year,
-            sales=fiscal[base.columns[0]],
-            profit=fiscal['영업이익'],
-            netProfit=fiscal['당기순이익'],
-            asset=fiscal['자산총계'],
-            capital=fiscal['자본총계'],
-            debt=fiscal['부채총계'],
-            debtRatio=fiscal['부채비율'],
-            retentionRate=fiscal['유보율'],
-            profitRate=fiscal['영업이익률'],
+            trailingSales=trailing[sales_col],
+            trailingProfit=trailing['영업이익'],
+            trailingNetProfit=trailing['당기순이익'],
+            trailingProfitRate=100 * trailing['영업이익'] / trailing[sales_col],
+            trailingDps=trailing['DPS'],
+            trailingEps=trailing['EPS'],
+            trailingPayoutRatio=100 * (1000 * fiscal['발행주식수']) * trailing['DPS'] / (trailing['당기순이익'] * 1e+8) if
+            trailing['당기순이익'] > 0 else np.nan,
+            fiscalMonth=fiscal.name,
+            fiscalSales=fiscal[sales_col],
+            fiscalProfit=fiscal['영업이익'],
+            fiscalNetProfit=fiscal['당기순이익'],
+            fiscalAsset=fiscal['자산총계'],
+            fiscalCapital=fiscal['자본총계'],
+            fiscalDebt=fiscal['부채총계'],
+            fiscalDebtRatio=fiscal['부채비율'],
+            fiscalRetentionRate=fiscal['유보율'],
+            fiscalProfitRate=100 * fiscal['영업이익'] / fiscal[sales_col],
+            fiscalEps=fiscal['EPS'],
+            fiscalDividendYield=fiscal['배당수익률'],
+            fiscalPayoutRatio=fiscal['배당성향'],
             returnOnAsset=fiscal['ROA'],
             returnOnEquity=fiscal['ROE'],
-            dps=fiscal['DPS'],
-            payoutRatio=fiscal['배당성향'],
-            dividendYield=fiscal['배당수익률']
         ))
+        fiscal_pct = dynamic_fiscal.loc[fiscal_month]
+        fiscal_pct = fiscal_pct.combine_first(dynamic_fiscal.loc[confirmed_yy.index[-2]])
+        for col in columns.values():
+            data[f'fiscal{col[0].upper() + col[1:]}Growth'] = fiscal_pct[col]
 
-        # @base에 대한 실적 증감율 계산
-        rename = SCHEMA.KEY_CHANGE_RATE.copy()
-        rename.update({base.columns[0]: "sales", "배당성향": "payoutRatio"})
-        rebase = base[[base.columns[0]] + list(SCHEMA.KEY_CHANGE_RATE.keys()) + ['배당성향']]
-        rebase = rebase.rename(columns=rename)
-        rated = rebase.rolling(2).apply(__growth, raw=True).iloc[1:]
-        rated = rated.replace({9999.9999: "흑자전환", -9999.9999: "적자전환", -9999.9998: "적자지속"})
+        # 최근 추정년도 기준 실적
+        data['estimatedMonth'] = est = estimated_yy.index[0]
+        estimated = static.loc[est]
+        for key, col in columns.items():
+            if col == 'eps':
+                continue  # @estimation과 중복 방지
+            data[f'estimated{col[0].upper() + col[1:]}'] = estimated[key]
 
-        # 최근 결산년도 주요 증감률 취합
-        fiscal_pct = rated.iloc[0]
-        fiscal_pct.index = [f'{n}Growth' for n in fiscal_pct.index]
-        data = pd.concat([data, fiscal_pct])
+        estimated_pct = dynamic_estimated.loc[est]
+        for col in columns.values():
+            data[f'estimated{col[0].upper() + col[1:]}Growth'] = estimated_pct[col]
 
-        # 최근 추정년도 기준 추정 증감률 취합
-        data['estimateYear'] = estimate_year = estimated.index[0]
-        estimated = rebase.loc[estimate_year]
-        estimated.index = [f'estimate{n.capitalize()}' for n in estimated.index]
-        estimated_pct = rated.iloc[1]
-        estimated_pct.index = [f'estimate{n.capitalize()}Growth' for n in estimated_pct.index]
-        data = pd.concat([data, estimated, estimated_pct])
         return data
 
     @staticmethod
     def _typecast(value: str) -> Union[int, float, str]:
         value = str(value).replace(" ", "").replace("%", "").replace(",", "")
-        if value in ['-', 'nan']:
+        if value in ['-', 'nan', '완전잠식']:
             return np.nan
         if any([c in value for c in ['/', '*']]) or all([c.isalpha() for c in value]):
             return value
@@ -160,9 +184,9 @@ class FnGuide:
             for idx in data.index
         ]
         data.columns.name = None
-        data = data.map(self._typecast)
-        data = data.drop(columns=[col for col in data.columns if "발표기준" in col])
-        data = data.rename(columns={col: col[:col.find("(")] if "(" in col else col for col in data.columns})
+        data = data.map(self._typecast) \
+            .drop(columns=[col for col in data.columns if "발표기준" in col]) \
+            .rename(columns={col: col[:col.find("(")] if "(" in col else col for col in data.columns})
         return data
 
     @cached_property
@@ -271,11 +295,11 @@ class FnGuide:
         for dl in tree.xpath('//div[@id="corp_group2"]/dl'):
             key = "".join(dl.xpath('.//a[contains(@class, "tip_in")]//text()')).strip()
             if key == "PER":
-                data['fiscalPE'] = dl.xpath('./dd/text()')[0].strip()
+                data['fiscalPe'] = dl.xpath('./dd/text()')[0].strip()
             if key == "12M PER":
-                data['fowardPE'] = dl.xpath('./dd/text()')[0].strip()
+                data['fowardPe'] = dl.xpath('./dd/text()')[0].strip()
             if key == "업종 PER":
-                data['industryPE'] = dl.xpath('./dd/text()')[0].strip()
+                data['industryPe'] = dl.xpath('./dd/text()')[0].strip()
             if key == "PBR":
                 data['fiscalPriceToBook'] = dl.xpath('./dd/text()')[0].strip()
             if self.ticker in SCHEMA.NUMBER_EXCEPTION:
@@ -283,14 +307,16 @@ class FnGuide:
                     data['dividendYield'] = dl.xpath('./dd/text()')[0].strip()
 
         data = data.map(self._typecast)
-        data['fiscalEps'] = round(data.close / data.fiscalPE, 2) if data.fiscalPE > 0 else np.nan
-        data['forwardEps'] = round(data.close / data.fowardPE, 2) if data.fowardPE > 0 else np.nan
+        if data.fiscalPe > 0:
+            data['fiscalEps'] = round(data.close / data.fiscalPe, 2)
+        data['forwardEps'] = round(data.close / data.fowardPe, 2) if data.fowardPe > 0 else np.nan
         if not self.ticker in SCHEMA.NUMBER_EXCEPTION:
             data = pd.concat(
                 [data, self.estimation, self._statement2numbers(self.annual_statement, self.quarter_statement)]
             )
         data.name = self.ticker
         return data
+
 
 if __name__ == "__main__":
     fng = FnGuide('000660')
