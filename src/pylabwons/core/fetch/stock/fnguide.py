@@ -1,5 +1,4 @@
 from pylabwons.core.fetch.stock import schema as SCHEMA
-from datetime import datetime
 from functools import cached_property
 from io import StringIO
 from lxml import html
@@ -118,11 +117,8 @@ class FnGuide:
             trailingSales=trailing[sales_col],
             trailingProfit=trailing['영업이익'],
             trailingNetProfit=trailing['당기순이익'],
-            trailingProfitRate=100 * trailing['영업이익'] / trailing[sales_col],
-            trailingDps=trailing['DPS'],
+            trailingProfitRate=100 * trailing['영업이익'] / trailing[sales_col] if trailing[sales_col] > 0 else np.nan,
             trailingEps=trailing['EPS'],
-            trailingPayoutRatio=100 * (1000 * fiscal['발행주식수']) * trailing['DPS'] / (trailing['당기순이익'] * 1e+8) if
-            trailing['당기순이익'] > 0 else np.nan,
             fiscalMonth=fiscal.name,
             fiscalSales=fiscal[sales_col],
             fiscalProfit=fiscal['영업이익'],
@@ -132,8 +128,8 @@ class FnGuide:
             fiscalDebt=fiscal['부채총계'],
             fiscalDebtRatio=fiscal['부채비율'],
             fiscalRetentionRate=fiscal['유보율'],
-            fiscalProfitRate=100 * fiscal['영업이익'] / fiscal[sales_col],
-            fiscalEps=fiscal['EPS'],
+            fiscalProfitRate=100 * fiscal['영업이익'] / fiscal[sales_col] if fiscal[sales_col] > 0 else np.nan,
+            # fiscalEps=fiscal['EPS'], # 직전 EPS 별도 계산 (중복 방지)
             fiscalDividendYield=fiscal['배당수익률'],
             fiscalPayoutRatio=fiscal['배당성향'],
             returnOnAsset=fiscal['ROA'],
@@ -278,18 +274,19 @@ class FnGuide:
         shares_outstanding = table.iloc[5, 1].replace(' ', '').split('/')
         float_shares = table.iloc[6, 1].replace(' ', '').split('/')
 
-        data = Series(name=self.ticker)
-        data['date'] = self.date
-        data['close'] = table.columns[1].replace(' ', '').split("/")[0]
-        data['fiftyTwoWeekHigh'] = fifty_two_weeks[0]
-        data['fiftyTwoWeekLow'] = fifty_two_weeks[1]
-        data['foreignRate'] = table.iloc[1, 3]
-        data['beta'] = table.iloc[2, 3]
-        data['sharesOutstanding'] = shares_outstanding[0]
-        data['sharesPreferred'] = shares_outstanding[1]
-        data['sharesFloating'] = float_shares[0]
-        data['sharesFloatingRate'] = float_shares[1]
-        data['ifrsType'] = self.gb if not self.ticker in SCHEMA.NUMBER_EXCEPTION else np.nan
+        data = Series(data=dict(
+            date=self.date,
+            close=table.columns[1].replace(' ', '').split("/")[0],
+            fiftyTwoWeekHigh=fifty_two_weeks[0],
+            fiftyTwoWeekLow=fifty_two_weeks[1],
+            foreignRate=table.iloc[1, 3],
+            beta=table.iloc[2, 3],
+            sharesOutstanding=shares_outstanding[0],
+            sharesPreferred=shares_outstanding[1],
+            sharesFloating=float_shares[0],
+            sharesFloatingRate=float_shares[1],
+            ifrsType=self.gb if not self.ticker in SCHEMA.NUMBER_EXCEPTION else np.nan,
+        ))
 
         tree = html.fromstring(self._snapshot_text)
         for dl in tree.xpath('//div[@id="corp_group2"]/dl'):
@@ -311,10 +308,16 @@ class FnGuide:
             data['fiscalEps'] = round(data.close / data.fiscalPe, 2)
         data['forwardEps'] = round(data.close / data.fowardPe, 2) if data.fowardPe > 0 else np.nan
         if not self.ticker in SCHEMA.NUMBER_EXCEPTION:
-            data = pd.concat(
-                [data, self.estimation, self._statement2numbers(self.annual_statement, self.quarter_statement)]
-            )
+            data = pd.concat([
+                data,
+                self.estimation,
+                self._statement2numbers(self.annual_statement, self.quarter_statement)
+            ])
         data.name = self.ticker
+        if not data.index.is_unique:
+            data = data.sort_values(na_position='last') \
+                   .groupby(level=0) \
+                   .head(1)
         return data
 
 
