@@ -1,33 +1,28 @@
-from pylabwons.utils.logger import Logger
 from pylabwons.core.fetch.stock.fnguide import FnGuide
-from functools import cached_property
-from pandas import DataFrame
-from typing import Dict, Iterator
+from pylabwons.core.fetch.market._base import _BaseDataFrame
+from pylabwons.core.fetch.market import _schema as SCHEMA
+from tqdm import auto
 import pandas as pd
 import time
 
 
-class Fundamentals(DataFrame):
+class Fundamentals(_BaseDataFrame):
 
-    logger = None
-    def __new__(cls, *args, **kwargs):
-        if not cls.logger:
-            cls.logger = Logger(console=kwargs.get('console', False))
-        return super().__new__(cls)
+    _metadata = _BaseDataFrame._metadata + ['progress_bar']
 
-    def __init__(self, src:str=''):
-        if not src:
-            src = 'https://github.com/labwons/pylabwons-archive/raw/refs/heads/main/data/src/fundamentals.parquet'
-        try:
-            super().__init__(pd.read_parquet(src, engine='pyarrow'))
-        except Exception:
-            super().__init__()
+    def __init__(self, src:str=SCHEMA.NUMBERS, **kwargs):
+        super().__init__(src, **kwargs)
+        self.progress_bar:bool = kwargs.get('progress_bar', True)
         return
 
     def fetch(self, *tickers:str):
         tic = time.perf_counter()
+        if self.progress_bar:
+            loop = auto.tqdm(enumerate(tickers))
+        else:
+            loop = enumerate(tickers)
         objs = []
-        for n, ticker in enumerate(tickers):
+        for n, ticker in loop:
             obj = FnGuide(ticker)
             if n == 0:
                 self.logger(f'FETCH MARKET NUMBERS OF {obj.date}')
@@ -41,3 +36,8 @@ class Fundamentals(DataFrame):
         super().__init__(pd.concat(objs, axis=1).T)
         self.logger(f'{"." * 30} {len(self)} STOCKS / RUNTIME: {time.perf_counter() - tic:.2f}s')
         return
+
+
+if __name__ == '__main__':
+    numbers = Fundamentals()
+    print(numbers)

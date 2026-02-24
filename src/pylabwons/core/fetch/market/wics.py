@@ -1,26 +1,16 @@
-from pylabwons.core.fetch.market.schema import wics as SCHEMA
-from pylabwons.utils.logger import Logger
+from pylabwons.core.fetch.market import _schema as SCHEMA
+from pylabwons.core.fetch.market._base import _BaseDataFrame
 from pandas import DataFrame
+from typing import Callable
 import pandas as pd
 import re, requests, time
 
 
-class WiseICS(DataFrame):
+class WiseICS(_BaseDataFrame):
     # WISE INDUSTRY CLASSIFICATION SYSTEM
 
-    logger = None
-    def __new__(cls, *args, **kwargs):
-        if not cls.logger:
-            cls.logger = Logger(console=kwargs.get('console', False))
-        return super().__new__(cls)
-
-    def __init__(self, src:str=''):
-        if not src:
-            src = 'https://github.com/labwons/pylabwons-archive/raw/refs/heads/main/data/src/wics.parquet'
-        try:
-            super().__init__(pd.read_parquet(src, engine='pyarrow'))
-        except Exception:
-            super().__init__()
+    def __init__(self, src:str=SCHEMA.WICS, **kwargs):
+        super().__init__(src, **kwargs)
         return
 
     def fetch(self):
@@ -59,40 +49,40 @@ class WiseICS(DataFrame):
                 adder[key] = SCHEMA.EXCEPTIONS[key]
         exceptions = DataFrame(adder).T
         data = pd.concat(objs=[data, exceptions], axis=0)
-        data['date'] = date
+        data['wicsDate'] = date
         self.logger(f'{"." * 30} {len(data)} STOCKS / RUNTIME: {time.perf_counter() -  tic:.2f}s')
         super().__init__(data)
         return
 
 
-    @classmethod
-    def _fetch_date(cls) -> str:
+    @staticmethod
+    def _fetch_date() -> str:
         return re.compile(r"var\s+dt\s*=\s*'(\d{8})'") \
             .search(requests.get(SCHEMA.URL.BASE).text) \
             .group(1)
 
-    @classmethod
-    def _fetch_group(cls, code: str, date: str = "", countdown: int = 5) -> DataFrame:
+    @staticmethod
+    def _fetch_group(code: str, date: str = "", countdown: int = 5, logger: Callable=print) -> DataFrame:
         try:
             resp = requests.get(SCHEMA.URL.SECTOR(date, code))
         except Exception as reason:
-            cls.logger(f'NG: {reason}')
+            logger(f'NG: {reason}')
             return DataFrame()
 
         if not resp.status_code == 200:
             if countdown == 0:
-                cls.logger(f'NG: TIMEOUT / {resp.status_code}')
+                logger(f'NG: TIMEOUT / {resp.status_code}')
                 return DataFrame()
             else:
                 time.sleep(5)
-                return cls._fetch_group(code, date, countdown - 1)
+                return WiseICS._fetch_group(code, date, countdown - 1)
         if "hmg-corp" in resp.text:
-            cls.logger(f'NG: BLOCKED')
+            logger(f'NG: BLOCKED')
             return DataFrame()
-        cls.logger(f'OK')
+        logger(f'OK')
         return DataFrame(resp.json()['list'])
 
 
 if __name__ == "__main__":
-    wics = WiseICS(r'E:\SIDEPROJ\pylabwons-archive\data\src\wics.parquet')
+    wics = WiseICS()
     print(wics)

@@ -20,8 +20,8 @@ MARKET_CAP = dict(
 
 MULTIPLES = dict(
     BPS='quarterlyBps',
-    PER='quarterlyPE',
-    PBR='quarterlyPB',
+    PER='quarterlyPe',
+    PBR='quarterlyPriceToBook',
     EPS='quarterlyEps',
 )
 

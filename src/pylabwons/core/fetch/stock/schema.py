@@ -34,8 +34,8 @@ LABEL_ESTIMATION = {
     "투자의견": "estimation",
     "목표주가": "targetPrice",
     "EPS": "estimatedEps",
-    "PER": "estimatedPer",
-    "추정기관수": "estimationCount"
+    "PER": "estimatedPe",
+    "추정기관수": "nOfEstimations"
 }
 
 KEY_CHANGE_RATE = {

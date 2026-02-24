@@ -1,29 +1,17 @@
-from pylabwons.utils.logger import Logger
 from pylabwons.utils.tradingdate import TradingDate
-from pylabwons.core.fetch.market.schema import market as SCHEMA
+from pylabwons.core.fetch.market import _schema as SCHEMA
+from pylabwons.core.fetch.market._base import _BaseDataFrame
 from datetime import datetime
 from pandas import DataFrame, Series
 from pykrx import stock
 import pandas as pd
 import requests, io, time
-pd.set_option('future.no_silent_downcasting', True)
 
 
-class AfterMarket(DataFrame):
+class AfterMarket(_BaseDataFrame):
 
-    logger = None
-    def __new__(cls, *args, **kwargs):
-        if not cls.logger:
-            cls.logger = Logger(console=kwargs.get('console', False))
-        return super().__new__(cls)
-
-    def __init__(self, src:str=''):
-        if not src:
-            src = 'https://github.com/labwons/pylabwons-archive/raw/refs/heads/main/data/src/aftermarket.parquet'
-        try:
-            super().__init__(pd.read_parquet(src, engine='pyarrow'))
-        except Exception:
-            super().__init__()
+    def __init__(self, src:str=SCHEMA.AFTERMARKET, **kwargs):
+        super().__init__(src, **kwargs)
         return
 
     def fetch(self):
@@ -41,7 +29,7 @@ class AfterMarket(DataFrame):
         data = data[data['market'].isin(['kosdaq', 'kospi'])]
 
         data = data.join(self._fetch_returns(td, data), how='left')
-        data['date'] = str(td)
+        data['tradingDate'] = str(td)
 
         super().__init__(data)
         self.logger(f'{"." * 30} {len(self)} STOCKS / RUNTIME: {time.perf_counter() - tic:.2f}s')
@@ -85,7 +73,7 @@ class AfterMarket(DataFrame):
         ks200 = Series(index=stock.get_index_portfolio_deposit_file('2203')).fillna('kospi200')
         kq150 = Series(index=stock.get_index_portfolio_deposit_file('1028')).fillna('kosdaq150')
         data = pd.concat([ks200, kq150], axis=0)
-        data.name = 'cap_classification'
+        data.name = 'groupByMarketCap'
         return data
 
     @classmethod
@@ -134,5 +122,6 @@ class AfterMarket(DataFrame):
 
 if __name__ == '__main__':
     market = AfterMarket()
-    market.fetch()
-    print(market.logger)
+    # market.fetch()
+    print(market)
+    # print(market.logger)

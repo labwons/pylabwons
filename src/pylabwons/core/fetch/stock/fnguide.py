@@ -275,7 +275,7 @@ class FnGuide:
         float_shares = table.iloc[6, 1].replace(' ', '').split('/')
 
         data = Series(data=dict(
-            date=self.date,
+            numbersDate=self.date,
             close=table.columns[1].replace(' ', '').split("/")[0],
             fiftyTwoWeekHigh=fifty_two_weeks[0],
             fiftyTwoWeekLow=fifty_two_weeks[1],
@@ -299,10 +299,11 @@ class FnGuide:
                 data['industryPe'] = dl.xpath('./dd/text()')[0].strip()
             if key == "PBR":
                 data['fiscalPriceToBook'] = dl.xpath('./dd/text()')[0].strip()
-            if self.ticker in SCHEMA.NUMBER_EXCEPTION:
+            if not self.ticker in SCHEMA.NUMBER_EXCEPTION:
                 if key == "배당수익률":
                     data['dividendYield'] = dl.xpath('./dd/text()')[0].strip()
-
+            else:
+                data['dividendYield'] = np.nan
         data = data.map(self._typecast)
         if data.fiscalPe > 0:
             data['fiscalEps'] = round(data.close / data.fiscalPe, 2)
