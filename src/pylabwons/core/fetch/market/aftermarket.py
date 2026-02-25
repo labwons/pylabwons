@@ -22,7 +22,6 @@ class AfterMarket(_BaseDataFrame):
         data = pd.concat([
             self._fetch_general(),
             self._fetch_market_cap(date=td.closed),
-            self._fetch_multiples(date=td.closed),
             self._fetch_foreign_rate(date=td.closed),
             self._fetch_market_cap_type(),
         ], axis=1)
@@ -41,13 +40,6 @@ class AfterMarket(_BaseDataFrame):
         data = stock.get_market_cap_by_ticker(date=date, market='ALL').astype('float64')
         data.rename(columns=SCHEMA.MARKET_CAP, inplace=True)
         return data[SCHEMA.MARKET_CAP.values()]
-
-    @classmethod
-    @SCHEMA.marketfetch("MULTIPLES")
-    def _fetch_multiples(cls, date:str) -> DataFrame:
-        data = stock.get_market_fundamental(date=date, market='ALL').astype('float64')
-        data.rename(columns=SCHEMA.MULTIPLES, inplace=True)
-        return data[SCHEMA.MULTIPLES.values()]
 
     @classmethod
     @SCHEMA.marketfetch("FOREIGN RATE")

@@ -1,4 +1,4 @@
-from pylabwons.core.fetch.stock import schema as SCHEMA
+from pylabwons.core.fetch.stock import _schema as SCHEMA
 from functools import cached_property
 from io import StringIO
 from lxml import html
@@ -44,13 +44,13 @@ class FnGuide:
         def __growth(arr: np.ndarray):
             if abs(arr[0]) <= 0.1:
                 return np.nan
-            if arr[0] < 0 < arr[1]:
+            if arr[0] < 0 < arr[-1]:
                 return 9999.9999  # 흑자 전환
-            if arr[0] > 0 > arr[1]:
+            if arr[0] > 0 > arr[-1]:
                 return -9999.9999  # 적자 전환
-            if arr[0] < 0 and arr[1] < 0:
+            if arr[0] < 0 and arr[-1] < 0:
                 return -9999.9998  # 적자 지속
-            return round(100 * (arr[1] - arr[0]) / abs(arr[0]), 2)
+            return round(100 * (arr[-1] - arr[0]) / abs(arr[0]), 2)
 
         def __separate_confirmed_estimated(st: DataFrame):
             """
@@ -72,6 +72,11 @@ class FnGuide:
         # 매출처 이름
         sales_col = confirmed_yy.columns[0]
         fiscal_month = confirmed_yy.index[-1]
+
+        # 영업이익률 계산 일원화
+        confirmed_yy['영업이익률'] = round(100 * confirmed_yy['영업이익'] / confirmed_yy[sales_col], 2)
+        confirmed_qq['영업이익률'] = round(100 * confirmed_qq['영업이익'] / confirmed_qq[sales_col], 2)
+        estimated_yy['영업이익률'] = round(100 * estimated_yy['영업이익'] / estimated_yy[sales_col], 2)
 
         # 계산용 데이터
         # - 정적 데이터: 확정/잠정 실적 + 추정 실적 1개년
@@ -107,6 +112,13 @@ class FnGuide:
             .rolling(2) \
             .apply(__growth, raw=True) \
             .replace({9999.9999: "흑자전환", -9999.9999: "적자전환", -9999.9998: "적자지속"})
+        yoy = confirmed_qq[[c for c in columns if c in confirmed_qq.columns]] \
+            .rename(columns=columns) \
+            .rolling(5) \
+            .apply(__growth, raw=True) \
+            .replace({9999.9999: "흑자전환", -9999.9999: "적자전환", -9999.9998: "적자지속"}) \
+            .iloc[-1][['sales', 'profit', 'netProfit', 'profitRate', 'eps']]
+        yoy.index = [f'yoy{col[0].upper()}{col[1:]}' for col in yoy.index]
 
         # 최근 4분기 합산 실적 및 최근 결산년도 주요 확정 실적 취합
         # - 최근 결산년도 EPS는 별도 계산
@@ -129,6 +141,7 @@ class FnGuide:
             fiscalDebtRatio=fiscal['부채비율'],
             fiscalRetentionRate=fiscal['유보율'],
             fiscalProfitRate=100 * fiscal['영업이익'] / fiscal[sales_col] if fiscal[sales_col] > 0 else np.nan,
+            fiscalDps=fiscal['DPS'],
             # fiscalEps=fiscal['EPS'], # 직전 EPS 별도 계산 (중복 방지)
             fiscalDividendYield=fiscal['배당수익률'],
             fiscalPayoutRatio=fiscal['배당성향'],
@@ -139,6 +152,8 @@ class FnGuide:
         fiscal_pct = fiscal_pct.combine_first(dynamic_fiscal.loc[confirmed_yy.index[-2]])
         for col in columns.values():
             data[f'fiscal{col[0].upper() + col[1:]}Growth'] = fiscal_pct[col]
+        for i, val in yoy.items():
+            data[i] = val
 
         # 최근 추정년도 기준 실적
         data['estimatedMonth'] = est = estimated_yy.index[0]
@@ -299,11 +314,6 @@ class FnGuide:
                 data['industryPe'] = dl.xpath('./dd/text()')[0].strip()
             if key == "PBR":
                 data['fiscalPriceToBook'] = dl.xpath('./dd/text()')[0].strip()
-            if not self.ticker in SCHEMA.NUMBER_EXCEPTION:
-                if key == "배당수익률":
-                    data['dividendYield'] = dl.xpath('./dd/text()')[0].strip()
-            else:
-                data['dividendYield'] = np.nan
         data = data.map(self._typecast)
         if data.fiscalPe > 0:
             data['fiscalEps'] = round(data.close / data.fiscalPe, 2)
@@ -317,8 +327,8 @@ class FnGuide:
         data.name = self.ticker
         if not data.index.is_unique:
             data = data.sort_values(na_position='last') \
-                   .groupby(level=0) \
-                   .head(1)
+                .groupby(level=0) \
+                .head(1)
         return data
 
 

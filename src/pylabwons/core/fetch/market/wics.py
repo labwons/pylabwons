@@ -21,7 +21,7 @@ class WiseICS(_BaseDataFrame):
         objs = []
         for n, (code, name) in enumerate(SCHEMA.CODES.items(), start=1):
             self.logger(f'>>> [{n}/{len(SCHEMA.CODES)}]{name}@{code}', end=' ... ')
-            objs.append(self._fetch_group(code, date))
+            objs.append(self._fetch_group(code, date, logger=self.logger))
 
         reits = DataFrame(data={'CMP_KOR': SCHEMA.REITS.values(), 'CMP_CD': SCHEMA.REITS.keys()})
         reits[['SEC_CD', 'IDX_CD', 'SEC_NM_KOR', 'IDX_NM_KOR']] = ['G99', 'WI999', '리츠', '리츠']

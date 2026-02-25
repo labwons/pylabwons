@@ -7,8 +7,8 @@ import functools
 GENERAL = dict(
     회사명="name",
     시장구분='market',
-    업종='krxIndustry',
-    주요제품='krxProduct',
+    업종='industryNameKrx',
+    주요제품='products',
     상장일='ipo',
 )
 
@@ -18,13 +18,6 @@ MARKET_CAP = dict(
     거래량='volume',
     거래대금='amount',
     상장주식수='shares'
-)
-
-MULTIPLES = dict(
-    BPS='quarterlyBps',
-    PER='quarterlyPe',
-    PBR='quarterlyPriceToBook',
-    EPS='quarterlyEps',
 )
 
 FOREIGN_RATE = dict(
