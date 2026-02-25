@@ -15,46 +15,50 @@ class WiseICS(_BaseDataFrame):
 
     def fetch(self):
         tic = time.perf_counter()
-        date = self._fetch_date()
-        self.logger(f'FETCH WICS ON {date}')
+        try:
+            date = self._fetch_date()
+            self.logger(f'FETCH WICS ON {date}')
 
-        objs = []
-        for n, (code, name) in enumerate(SCHEMA.CODES.items(), start=1):
-            self.logger(f'>>> [{n}/{len(SCHEMA.CODES)}]{name}@{code}', end=' ... ')
-            obj = self._fetch_group(code, date, logger=self.logger)
-            if obj.empty:
-                raise ConnectionError(f'Failed to fetch {code} / {name}')
-            objs.append(obj)
+            objs = []
+            for n, (code, name) in enumerate(SCHEMA.CODES.items(), start=1):
+                self.logger(f'>>> [{n}/{len(SCHEMA.CODES)}]{name}@{code}', end=' ... ')
+                obj = self._fetch_group(code, date, logger=self.logger)
+                if obj.empty:
+                    raise ConnectionError(f'Failed to fetch {code} / {name}')
+                objs.append(obj)
 
-        reits = DataFrame(data={'CMP_KOR': SCHEMA.REITS.values(), 'CMP_CD': SCHEMA.REITS.keys()})
-        reits[['SEC_CD', 'IDX_CD', 'SEC_NM_KOR', 'IDX_NM_KOR']] = ['G99', 'WI999', '리츠', '리츠']
-        objs.append(reits)
+            reits = DataFrame(data={'CMP_KOR': SCHEMA.REITS.values(), 'CMP_CD': SCHEMA.REITS.keys()})
+            reits[['SEC_CD', 'IDX_CD', 'SEC_NM_KOR', 'IDX_NM_KOR']] = ['G99', 'WI999', '리츠', '리츠']
+            objs.append(reits)
 
-        data:DataFrame = pd.concat(objs, axis=0, ignore_index=True)
-        data.drop(inplace=True, columns=[key for key in data if not key in SCHEMA.LABELS])
-        data.drop(inplace=True, index=data[data['SEC_CD'].isna()].index)
-        data.rename(inplace=True, columns=SCHEMA.LABELS)
-        data.set_index(inplace=True, keys="ticker")
-        data['industryName'] = data['industryName'].str.replace("WI26 ", "")
+            data:DataFrame = pd.concat(objs, axis=0, ignore_index=True)
+            data.drop(inplace=True, columns=[key for key in data if not key in SCHEMA.LABELS])
+            data.drop(inplace=True, index=data[data['SEC_CD'].isna()].index)
+            data.rename(inplace=True, columns=SCHEMA.LABELS)
+            data.set_index(inplace=True, keys="ticker")
+            data['industryName'] = data['industryName'].str.replace("WI26 ", "")
 
-        sc_mdi = data[(data['industryCode'] == 'WI330') & (data['sectorCode'] == 'G50')].index
-        sc_edu = data[(data['industryCode'] == 'WI330') & (data['sectorCode'] == 'G25')].index
-        sc_sw = data[(data['industryCode'] == 'WI600') & (data['sectorCode'] == 'G50')].index
-        sc_it = data[(data['industryCode'] == 'WI600') & (data['sectorCode'] == 'G45')].index
-        data.loc[sc_mdi, 'industryCode'], data.loc[sc_mdi, 'industryName'] = 'WI331', '미디어'
-        data.loc[sc_edu, 'industryCode'], data.loc[sc_edu, 'industryName'] = 'WI332', '교육'
-        data.loc[sc_sw, 'industryCode'], data.loc[sc_sw, 'industryName'] = 'WI601', '소프트웨어'
-        data.loc[sc_it, 'industryCode'], data.loc[sc_it, 'industryName'] = 'WI602', 'IT서비스'
+            sc_mdi = data[(data['industryCode'] == 'WI330') & (data['sectorCode'] == 'G50')].index
+            sc_edu = data[(data['industryCode'] == 'WI330') & (data['sectorCode'] == 'G25')].index
+            sc_sw = data[(data['industryCode'] == 'WI600') & (data['sectorCode'] == 'G50')].index
+            sc_it = data[(data['industryCode'] == 'WI600') & (data['sectorCode'] == 'G45')].index
+            data.loc[sc_mdi, 'industryCode'], data.loc[sc_mdi, 'industryName'] = 'WI331', '미디어'
+            data.loc[sc_edu, 'industryCode'], data.loc[sc_edu, 'industryName'] = 'WI332', '교육'
+            data.loc[sc_sw, 'industryCode'], data.loc[sc_sw, 'industryName'] = 'WI601', '소프트웨어'
+            data.loc[sc_it, 'industryCode'], data.loc[sc_it, 'industryName'] = 'WI602', 'IT서비스'
 
-        adder = {}
-        for key in SCHEMA.EXCEPTIONS:
-            if not key in data.index:
-                adder[key] = SCHEMA.EXCEPTIONS[key]
-        exceptions = DataFrame(adder).T
-        data = pd.concat(objs=[data, exceptions], axis=0)
-        data['wicsDate'] = date
-        self.logger(f'{"." * 30} {len(data)} STOCKS / RUNTIME: {time.perf_counter() -  tic:.2f}s')
-        super().__init__(data)
+            adder = {}
+            for key in SCHEMA.EXCEPTIONS:
+                if not key in data.index:
+                    adder[key] = SCHEMA.EXCEPTIONS[key]
+            exceptions = DataFrame(adder).T
+            data = pd.concat(objs=[data, exceptions], axis=0)
+            data['wicsDate'] = date
+            self.logger(f'{"." * 30} {len(data)} STOCKS / RUNTIME: {time.perf_counter() -  tic:.2f}s')
+            super().__init__(data)
+        except (ConnectionError, Exception, TimeoutError) as reason:
+            self.logger(f'FAILED TO FETCH WICS: {reason} / RUNTIME: {time.perf_counter() -  tic:.2f}s')
+            raise ConnectionError(e)
         return
 
     @property

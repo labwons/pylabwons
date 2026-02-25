@@ -1,5 +1,6 @@
 from pylabwons.utils.logger import Logger
 from pandas import DataFrame
+from pathlib import Path
 from typing import Union
 import pandas as pd
 import io, requests, urllib3
@@ -22,7 +23,8 @@ class _BaseDataFrame(DataFrame):
         if isinstance(data, DataFrame):
             super().__init__(data)
             return
-
+        if isinstance(data, Path):
+            data = str(data)
         if isinstance(data, str):
             src = ''
             if data.startswith('http'):

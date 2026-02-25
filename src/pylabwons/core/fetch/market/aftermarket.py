@@ -18,14 +18,14 @@ class AfterMarket(_BaseDataFrame):
         tic = time.perf_counter()
         td = TradingDate()
         self.logger(f'FETCH AFTER MARKET DATA ON {td.closed}')
-
-        data = pd.concat([
-            self._fetch_general(),
-            self._fetch_market_cap(date=td.closed),
-            self._fetch_foreign_rate(date=td.closed),
-            self._fetch_market_cap_type(),
-        ], axis=1)
         try:
+            data = pd.concat([
+                self._fetch_general(),
+                self._fetch_market_cap(date=td.closed),
+                self._fetch_foreign_rate(date=td.closed),
+                self._fetch_market_cap_type(),
+            ], axis=1)
+
             data = data[data['market'].isin(['kosdaq', 'kospi'])]
 
             data = data.join(self._fetch_returns(td, data), how='left')
@@ -35,6 +35,7 @@ class AfterMarket(_BaseDataFrame):
             self.logger(f'{"." * 30} {len(self)} STOCKS / RUNTIME: {time.perf_counter() - tic:.2f}s')
         except (KeyError, Exception) as e:
             self.logger(f'FAILED FETCHING: {e} / RUNTIME: {time.perf_counter() - tic:.2f}s')
+            raise ConnectionError(e)
         return
 
     @property
