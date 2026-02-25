@@ -25,32 +25,36 @@ class AfterMarket(_BaseDataFrame):
             self._fetch_foreign_rate(date=td.closed),
             self._fetch_market_cap_type(),
         ], axis=1)
-        data = data[data['market'].isin(['kosdaq', 'kospi'])]
+        try:
+            data = data[data['market'].isin(['kosdaq', 'kospi'])]
 
-        data = data.join(self._fetch_returns(td, data), how='left')
-        data['tradingDate'] = str(td)
+            data = data.join(self._fetch_returns(td, data), how='left')
+            data['tradingDate'] = str(td)
 
-        super().__init__(data)
-        self.logger(f'{"." * 30} {len(self)} STOCKS / RUNTIME: {time.perf_counter() - tic:.2f}s')
+            super().__init__(data)
+            self.logger(f'{"." * 30} {len(self)} STOCKS / RUNTIME: {time.perf_counter() - tic:.2f}s')
+        except (KeyError, Exception) as e:
+            self.logger(f'FAILED FETCHING: {e} / RUNTIME: {time.perf_counter() - tic:.2f}s')
         return
 
-    @classmethod
+    @property
+    def date(self) -> str:
+        return self['tradingDate'].unique()[0]
+
     @SCHEMA.marketfetch("MARKET CAP")
-    def _fetch_market_cap(cls, date:str) -> DataFrame:
+    def _fetch_market_cap(self, date:str) -> DataFrame:
         data = stock.get_market_cap_by_ticker(date=date, market='ALL').astype('float64')
         data.rename(columns=SCHEMA.MARKET_CAP, inplace=True)
         return data[SCHEMA.MARKET_CAP.values()]
 
-    @classmethod
     @SCHEMA.marketfetch("FOREIGN RATE")
-    def _fetch_foreign_rate(cls, date:str) -> DataFrame:
+    def _fetch_foreign_rate(self, date:str) -> DataFrame:
         data = stock.get_exhaustion_rates_of_foreign_investment(date=date, market='ALL').astype('float64')
         data.rename(columns=SCHEMA.FOREIGN_RATE, inplace=True)
         return data[SCHEMA.FOREIGN_RATE.values()]
 
-    @classmethod
     @SCHEMA.marketfetch("GENERAL INFO")
-    def _fetch_general(cls) -> DataFrame:
+    def _fetch_general(self) -> DataFrame:
         resp = requests.get(SCHEMA.KRX_GENERAL).text
         data = pd.read_html(io=io.StringIO(resp), encoding='euc-kr')[0].set_index(keys='종목코드')
         data.index = data.index.astype(str).str.zfill(6)
@@ -59,18 +63,16 @@ class AfterMarket(_BaseDataFrame):
         data['market'] = data['market'].replace('코스닥', 'kosdaq').replace('유가', 'kospi')
         return data[SCHEMA.GENERAL.values()]
 
-    @classmethod
     @SCHEMA.marketfetch("MARKET CAP TYPE")
-    def _fetch_market_cap_type(cls) -> Series:
+    def _fetch_market_cap_type(self) -> Series:
         ks200 = Series(index=stock.get_index_portfolio_deposit_file('2203')).fillna('kospi200')
         kq150 = Series(index=stock.get_index_portfolio_deposit_file('1028')).fillna('kosdaq150')
         data = pd.concat([ks200, kq150], axis=0)
         data.name = 'groupByMarketCap'
         return data
 
-    @classmethod
     @SCHEMA.marketfetch("RETURNS")
-    def _fetch_returns(cls, td:TradingDate, base:DataFrame) -> DataFrame:
+    def _fetch_returns(self, td:TradingDate, base:DataFrame) -> DataFrame:
         base = base[base['volume'] != 0]
 
         objs = {'D+0': stock.get_market_cap_by_ticker(date=td.closed, market='ALL')}
@@ -114,6 +116,7 @@ class AfterMarket(_BaseDataFrame):
 
 if __name__ == '__main__':
     market = AfterMarket()
-    # market.fetch()
+    market.fetch()
     print(market)
-    # print(market.logger)
+    print(market.tradingDate)
+    print(market.logger)

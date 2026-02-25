@@ -21,7 +21,10 @@ class WiseICS(_BaseDataFrame):
         objs = []
         for n, (code, name) in enumerate(SCHEMA.CODES.items(), start=1):
             self.logger(f'>>> [{n}/{len(SCHEMA.CODES)}]{name}@{code}', end=' ... ')
-            objs.append(self._fetch_group(code, date, logger=self.logger))
+            obj = self._fetch_group(code, date, logger=self.logger)
+            if obj.empty:
+                raise ConnectionError(f'Failed to fetch {code} / {name}')
+            objs.append(obj)
 
         reits = DataFrame(data={'CMP_KOR': SCHEMA.REITS.values(), 'CMP_CD': SCHEMA.REITS.keys()})
         reits[['SEC_CD', 'IDX_CD', 'SEC_NM_KOR', 'IDX_NM_KOR']] = ['G99', 'WI999', '리츠', '리츠']
@@ -54,6 +57,9 @@ class WiseICS(_BaseDataFrame):
         super().__init__(data)
         return
 
+    @property
+    def date(self) -> str:
+        return self['wicsDate'].unique()[0]
 
     @staticmethod
     def _fetch_date() -> str:

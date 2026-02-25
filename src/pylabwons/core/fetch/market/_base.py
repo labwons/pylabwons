@@ -1,5 +1,6 @@
 from pylabwons.utils.logger import Logger
 from pandas import DataFrame
+from typing import Union
 import pandas as pd
 import io, requests, urllib3
 
@@ -15,7 +16,7 @@ class _BaseDataFrame(DataFrame):
         return _BaseDataFrame
 
     def __init__(self, *args, **kwargs):
-        self.logger:Logger = Logger(console=kwargs.get('console', True))
+        self.logger:Union[Logger, print] = kwargs.get('logger', print)
 
         data = args[0]
         if isinstance(data, DataFrame):

@@ -43,20 +43,20 @@ def marketfetch(name):
     def decorator(func):
 
         @functools.wraps(func)
-        def wrapper(cls, *args, **kwargs):
-            if hasattr(cls, 'logger') and cls.logger:
-                cls.logger(f"FETCH [{name}]", end=" ... ")
+        def wrapper(self, *args, **kwargs):
+            if hasattr(self, 'logger') and self.logger:
+                self.logger(f"FETCH [{name}]", end=" ... ")
 
             try:
-                result = func(cls, *args, **kwargs)
+                result = func(self, *args, **kwargs)
 
-                if hasattr(cls, 'logger') and cls.logger:
-                    cls.logger(f"OK")
+                if hasattr(self, 'logger') and self.logger:
+                    self.logger(f"OK")
                 return result
 
             except Exception as e:
-                if hasattr(cls, 'logger') and cls.logger:
-                    cls.logger(f"NG: {e}")
+                if hasattr(self, 'logger') and self.logger:
+                    self.logger(f"NG: {e}")
                 return DataFrame()
 
         return wrapper
