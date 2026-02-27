@@ -1,4 +1,4 @@
-from pylabwons.core.fetch.stock import _schema as SCHEMA
+from pylabwons.schema import fnguide as SCHEMA
 from functools import cached_property
 from io import StringIO
 from lxml import html
@@ -64,6 +64,12 @@ class FnGuide:
                 _estimated.drop(index=_estimated.index[0], inplace=True)
             return _confirmed, _estimated
 
+        def __payout_ratio(arr: np.ndarray):
+            shares, dps, net_profit = arr
+            if net_profit <= 0:
+                return np.nan
+            return round(100 * (1000 * shares) * dps / (net_profit * 1e+8), 2)
+
         # 확정 실적과 추정/잠정 실적 분리
         confirmed_yy, estimated_yy = __separate_confirmed_estimated(yy)
         confirmed_qq, _ = __separate_confirmed_estimated(qq)
@@ -84,7 +90,7 @@ class FnGuide:
         #   @[{"매출", "이자수익", "보험수익"}, "영업이익", "당기순이익",
         #     "자산총계", "부채총계", "영업이익률", "EPS", "DPS"]
         columns = SCHEMA.KEY_CHANGE_RATE.copy()
-        columns.update({sales_col: "sales", "배당성향": "payoutRatio"})
+        columns.update({sales_col: "revenue", "배당성향": "payoutRatio"})
 
         static = pd.concat([confirmed_yy, estimated_yy.iloc[[0]]])
 
@@ -94,7 +100,7 @@ class FnGuide:
             static.at[fiscal_month, 'DPS'] \
                 = max(static.at[confirmed_yy.index[-2], 'DPS'], trailing['DPS'])
         static['발행주식수'] = static['발행주식수'].ffill()
-        static['배당성향'] = round(100 * (1000 * static['발행주식수']) * static['DPS'] / (static['당기순이익'] * 1e+8), 2)
+        static['배당성향'] = static[['발행주식수', 'DPS', '당기순이익']].apply(__payout_ratio, axis=1, raw=True)
 
         # 변화율(성장률) 계산
         # - 잠정 실적이 존재하는 경우, 결측치는 직전 확정실적으로 대체
@@ -117,7 +123,7 @@ class FnGuide:
             .rolling(5) \
             .apply(__growth, raw=True) \
             .replace({9999.9999: "흑자전환", -9999.9999: "적자전환", -9999.9998: "적자지속"}) \
-            .iloc[-1][['sales', 'profit', 'netProfit', 'profitRate', 'eps']]
+            .iloc[-1][['revenue', 'profit', 'netProfit', 'profitRate', 'eps']]
         yoy.index = [f'yoy{col[0].upper()}{col[1:]}' for col in yoy.index]
 
         # 최근 4분기 합산 실적 및 최근 결산년도 주요 확정 실적 취합
@@ -171,14 +177,13 @@ class FnGuide:
 
     @staticmethod
     def _typecast(value: str) -> Union[int, float, str]:
-        if str(value) in ['', ' ', '-', 'nan', '완전잠식']:
+        if str(value) in ['', ' ', '-', 'nan', '완전잠식', "N/A(IFRS)"]:
             return np.nan
 
         value = str(value) \
-                .replace(" ", "") \
-                .replace("%", "") \
-                .replace(",", "") \
-                .replace("N/A(IFRS)", "")
+            .replace(" ", "") \
+            .replace("%", "") \
+            .replace(",", "")
         if any([c in value for c in ['/', '*']]) or all([c.isalpha() for c in value]):
             return value
         value = value.lower()

@@ -1,13 +1,13 @@
 import pprint
 
-class DataDictionary(dict):
+class DataDict(dict):
     """
     데이터 저장 Dictionary
     built-in: dict의 확장으로 저장 요소에 대해 attribute 접근 방식을 허용
     기본 제공 Alias (별칭): dD, dDict
 
     사용 예시)
-        myData = DataDictionary(name='JEHYEUK', age=34, division='Vehicle Solution Team')
+        myData = DataDict(name='JEHYEUK', age=34, division='Vehicle Solution Team')
         print(myData.name, myData['name'], myData.name == myData['name'])
 
         /* ----------------------------------------------------------------------------------------
@@ -23,7 +23,7 @@ class DataDictionary(dict):
         data.update(kwargs)
         for key, value in data.items():
             if isinstance(value, dict):
-                value = DataDictionary(**value)
+                value = DataDict(**value)
             self[key] = value
 
     def __getattr__(self, attr):
@@ -33,7 +33,7 @@ class DataDictionary(dict):
 
     def __setattr__(self, attr, value):
         if isinstance(value, dict):
-            self[attr] = DataDictionary(**value)
+            self[attr] = DataDict(**value)
         else:
             self[attr] = value
 
@@ -42,4 +42,4 @@ class DataDictionary(dict):
 
 
 # Alias
-DD = DataDict = DataDictionary
+DataDictionary = DataDict

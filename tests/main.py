@@ -4,13 +4,7 @@ pd.set_option('display.expand_frame_repr', False)
 
 
 if __name__ == "__main__":
-    print(lw.AfterMarket)
-    print(lw.WiseICS)
-    print(lw.Fundamentals)
-
-    print(lw.AfterMarket())
-    print(lw.WiseICS())
-    print(lw.Fundamentals())
+    print(lw)
 
     # key = 'KRW-H'
     # src = r"E:\SIDEPROJ\labwons-analytic\src\analysis\archive\baseline.parquet"
