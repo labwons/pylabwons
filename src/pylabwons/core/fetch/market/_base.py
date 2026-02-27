@@ -26,9 +26,9 @@ class _BaseDataFrame(DataFrame):
         if isinstance(data, Path):
             data = str(data)
         if isinstance(data, str):
-            src = ''
-            if data.startswith('http'):
-                resp = requests.get(data, verify=False)
+            src = data
+            if src.startswith('http'):
+                resp = requests.get(src, verify=False)
                 if not resp.status_code == 200:
                     self.logger(f'Error parsing: {resp.status_code}')
                     super().__init__()

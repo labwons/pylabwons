@@ -171,9 +171,14 @@ class FnGuide:
 
     @staticmethod
     def _typecast(value: str) -> Union[int, float, str]:
-        value = str(value).replace(" ", "").replace("%", "").replace(",", "")
-        if value in ['-', 'nan', '완전잠식']:
+        if str(value) in ['', ' ', '-', 'nan', '완전잠식']:
             return np.nan
+
+        value = str(value) \
+                .replace(" ", "") \
+                .replace("%", "") \
+                .replace(",", "") \
+                .replace("N/A(IFRS)", "")
         if any([c in value for c in ['/', '*']]) or all([c.isalpha() for c in value]):
             return value
         value = value.lower()
@@ -315,6 +320,7 @@ class FnGuide:
             if key == "PBR":
                 data['fiscalPriceToBook'] = dl.xpath('./dd/text()')[0].strip()
         data = data.map(self._typecast)
+
         if data.fiscalPe > 0:
             data['fiscalEps'] = round(data.close / data.fiscalPe, 2)
         data['forwardEps'] = round(data.close / data.fowardPe, 2) if data.fowardPe > 0 else np.nan
