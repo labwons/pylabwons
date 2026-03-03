@@ -27,17 +27,28 @@ class TradingDate:
             return datetime.now(cls.tz)
         return datetime.now(cls.tz).strftime(fmt)
 
+
+    def get_closed(self) -> str:
+        if self.is_open():
+            base = (self.clock().date() - timedelta(days=1)).strftime("%Y%m%d")
+        else:
+            base = self.clock("%Y%m%d")
+
+        try:
+            return get_nearest_business_day_in_a_week(base)
+        except (HTTPError, SSLError, IndexError):
+            return base
+
+
     @property
     def closed(self) -> str:
-        if not self.is_open():
-            return self.latest
         if not hasattr(self, '_closed'):
-            try:
-                today = (self.clock().date() - timedelta(days=1)).strftime("%Y%m%d")
-                setattr(self, '_closed', get_nearest_business_day_in_a_week(today))
-            except (HTTPError, SSLError, IndexError):
-                setattr(self, '_closed', self.clock('%Y%m%d'))
+            setattr(self, '_closed', self.get_closed())
         return getattr(self, '_closed')
+
+    @closed.setter
+    def closed(self, closed:str):
+        setattr(self, '_closed', closed)
 
     @property
     def latest(self) -> str:

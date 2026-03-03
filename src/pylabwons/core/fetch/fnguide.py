@@ -244,7 +244,7 @@ class FnGuide:
 
     @cached_property
     def date(self) -> str:
-        return html.fromstring(self._snapshot_text).xpath('//span[@class="date"]//text()')[0][1:-1]
+        return html.fromstring(self._snapshot_text).xpath('//span[@class="date"]//text()')[0][1:-1].replace("/", "")
 
     @cached_property
     def estimation(self) -> Series:
