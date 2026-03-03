@@ -132,13 +132,13 @@ class FnGuide:
         fiscal = static.loc[fiscal_month].copy()
         fiscal = fiscal.combine_first(static.loc[confirmed_yy.index[-2]])
         data = Series(data=dict(
-            trailingSales=trailing[sales_col],
+            trailingRevenue=trailing[sales_col],
             trailingProfit=trailing['영업이익'],
             trailingNetProfit=trailing['당기순이익'],
             trailingProfitRate=100 * trailing['영업이익'] / trailing[sales_col] if trailing[sales_col] > 0 else np.nan,
             trailingEps=trailing['EPS'],
             fiscalMonth=fiscal.name,
-            fiscalSales=fiscal[sales_col],
+            fiscalRevenue=fiscal[sales_col],
             fiscalProfit=fiscal['영업이익'],
             fiscalNetProfit=fiscal['당기순이익'],
             fiscalAsset=fiscal['자산총계'],
