@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from pytz import timezone
 from pykrx.stock import get_nearest_business_day_in_a_week
-from requests.exceptions import HTTPError, SSLError
+from requests.exceptions import ConnectionError, HTTPError, SSLError
 from typing import Union
 
 
@@ -36,7 +36,7 @@ class TradingDate:
 
         try:
             return get_nearest_business_day_in_a_week(base)
-        except (HTTPError, SSLError, IndexError):
+        except (ConnectionError, HTTPError, SSLError, IndexError, Exception):
             return base
 
 
@@ -55,7 +55,7 @@ class TradingDate:
         if not hasattr(self, '_latest'):
             try:
                 setattr(self, '_latest', get_nearest_business_day_in_a_week())
-            except (HTTPError, SSLError, IndexError):
+            except (ConnectionError, HTTPError, SSLError, IndexError, Exception):
                 setattr(self, '_latest', self.clock('%Y%m%d'))
         return getattr(self, '_latest')
 
