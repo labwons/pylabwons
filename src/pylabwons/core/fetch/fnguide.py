@@ -319,7 +319,7 @@ class FnGuide:
             if key == "PER":
                 data['fiscalPe'] = dl.xpath('./dd/text()')[0].strip()
             if key == "12M PER":
-                data['fowardPe'] = dl.xpath('./dd/text()')[0].strip()
+                data['forwardPe'] = dl.xpath('./dd/text()')[0].strip()
             if key == "업종 PER":
                 data['industryPe'] = dl.xpath('./dd/text()')[0].strip()
             if key == "PBR":
@@ -328,7 +328,7 @@ class FnGuide:
 
         if data.fiscalPe > 0:
             data['fiscalEps'] = round(data.close / data.fiscalPe, 2)
-        data['forwardEps'] = round(data.close / data.fowardPe, 2) if data.fowardPe > 0 else np.nan
+        data['forwardEps'] = round(data.close / data.forwardPe, 2) if data.forwardPe > 0 else np.nan
         if not self.ticker in SCHEMA.NUMBER_EXCEPTION:
             data = pd.concat([
                 data,
