@@ -1,6 +1,8 @@
+from functools import cached_property
 from pandas import DataFrame, Series
 from pylabwons.core import FnGuide, krx
 from pylabwons.utils import TradingDate
+import pandas as pd
 
 
 class Ticker(FnGuide):
@@ -11,6 +13,15 @@ class Ticker(FnGuide):
         self.freq = 'd'
         self.period = 10 # UNIT: YEARS
         return
+
+    def __str__(self) -> str:
+        return str(self.snapshot)
+
+    def __repr__(self):
+        return repr(self.snapshot)
+    
+    def _repr_html_(self):
+        return self.snapshot.to_frame()._repr_html_()
 
     @property
     def ohlcv(self) -> DataFrame:
@@ -62,3 +73,12 @@ class Ticker(FnGuide):
             market_cap.index.name = "quarter"
             self.__setattr__(_key, Series(index=market_cap.index, data=market_cap['시가총액'] / 1e+8, dtype=int))
         return self.__getattribute__(_key)
+
+    @cached_property
+    def snapshot(self) -> Series:
+        if not 'baseline' in globals():
+            globals()['baseline'] = pd.read_parquet(
+                'https://github.com/labwons/labwons-manager/raw/refs/heads/main/data/src/baseline.parquet',
+                engine='pyarrow'
+            )
+        return globals()['baseline'].loc[self.ticker]
