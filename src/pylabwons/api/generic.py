@@ -1,12 +1,64 @@
-from pandas import DataFrame, MultiIndex
-from pylabwons.core import Detector, TickerView
+from pandas import DataFrame, Series
+from pylabwons.core import FnGuide, krx
+from pylabwons.utils import TradingDate
 
 
-class Ticker(Detector):
+class Ticker(FnGuide):
 
-    def __init__(self, ohlcv: DataFrame):
-        super().__init__(ohlcv)
-        if not self.is_bundle:
-            self.viewer = TickerView(ohlcv)
-        self.viewer.ohlcv = self.data
+    def __init__(self, ticker:str):
+        super().__init__(ticker)
+        self.trading_date = TradingDate()
+        self.freq = 'd'
+        self.period = 10 # UNIT: YEARS
         return
+
+    @property
+    def ohlcv(self) -> DataFrame:
+        kwargs = dict(
+            fromdate=self.trading_date - 365 * self.period,
+            todate=self.trading_date.latest,
+            ticker=self.ticker,
+            freq=self.freq
+        )
+        _key = '_'.join(kwargs.values())
+        if not hasattr(self, _key):
+            self.__setattr__(_key, krx.get_ohlcv(**kwargs))
+        return self.__getattribute__(_key)
+
+    @property
+    def annual_market_cap(self) -> Series:
+        cap = self.quarterly_market_cap
+        cap = cap[cap.index.str.endswith('4Q') | (cap.index == cap.index[-1])]
+        cap.index = [i.replace('4Q', '12') for i in cap.index]
+        cap.index.name = "year"
+        return cap
+
+    @property
+    def quarterly_market_cap(self) -> Series:
+        kwargs = dict(
+            fromdate=self.trading_date - 365 * self.period,
+            todate=self.trading_date.latest,
+            ticker=self.ticker,
+            freq='m'
+        )
+        _key = '_'.join(kwargs.values())
+        if not hasattr(self, _key):
+            market_cap = krx.get_market_cap(**kwargs)
+            market_cap = market_cap[
+                market_cap.index.astype(str).str.contains('03') | \
+                market_cap.index.astype(str).str.contains('06') | \
+                market_cap.index.astype(str).str.contains('09') | \
+                market_cap.index.astype(str).str.contains('12') | \
+                (market_cap.index == market_cap.index[-1])
+            ]
+            market_cap.index = market_cap.index.strftime("%Y/%m")
+            market_cap.index = [
+                col \
+                    .replace("03", "1Q") \
+                    .replace("06", "2Q") \
+                    .replace("09", "3Q") \
+                    .replace("12", "4Q") for col in market_cap.index
+            ]
+            market_cap.index.name = "quarter"
+            self.__setattr__(_key, Series(index=market_cap.index, data=market_cap['시가총액'] / 1e+8, dtype=int))
+        return self.__getattribute__(_key)

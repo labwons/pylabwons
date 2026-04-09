@@ -1,6 +1,7 @@
-from pylabwons.schema.datadict import DataDictionary
+if not 'DataDict' in globals():
+    from pylabwons.schema.datadict import DataDict
 
-URLS = lambda ticker: DataDictionary(
+URLS = lambda ticker: DataDict(
     SNAPSHOT=f"http://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?" \
              f"pGB=1&" \
              f"gicode=A{ticker}&" \

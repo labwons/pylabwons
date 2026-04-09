@@ -1,4 +1,5 @@
-from pylabwons.schema import fnguide as SCHEMA
+if not "SCHEMA" in globals():
+    from pylabwons.schema import fnguide as SCHEMA
 from functools import cached_property
 from io import StringIO
 from lxml import html
@@ -37,9 +38,56 @@ class FnGuide:
             except requests.RequestException:
                 time.sleep(3 + random.random() * 5)
         raise ConnectionError(f"Failed to fetch after retries: {url}")
+    
+    @staticmethod
+    def _separate_confirmed_estimated(st: DataFrame):
+        """
+        잠정 실적(P)이 존재하는 경우 잠정 실적을 확정 실적에 준하여 계산에 사용
+        """
+        _confirmed = st[~st.index.str.contains(r"\(|\)")].copy()
+        _estimated = st[~st.index.isin(_confirmed.index)].copy()
+        if _estimated.index[0].endswith('(P)'):
+            prov = _estimated.iloc[[0]].copy()  # 최근 잠정 실적
+            _confirmed = pd.concat([_confirmed, prov], axis=0)
+            _estimated.drop(index=_estimated.index[0], inplace=True)
+        return _confirmed, _estimated
 
     @staticmethod
-    def _statement2numbers(yy: DataFrame, qq: DataFrame) -> Series:
+    def _typecast(value: str) -> Union[int, float, str]:
+        if str(value) in ['', ' ', '-', 'nan', '완전잠식', "N/A(IFRS)"]:
+            return np.nan
+
+        value = str(value) \
+            .replace(" ", "") \
+            .replace("%", "") \
+            .replace(",", "")
+        if any([c in value for c in ['/', '*']]) or all([c.isalpha() for c in value]):
+            return value
+        value = value.lower()
+        if not any([char.isdigit() for char in value]):
+            return np.nan
+        return float(value) if "." in value or "-" in value else int(value)
+
+    def _src2statement(self, src: DataFrame) -> DataFrame:
+        data = src.set_index(keys=[src.columns[0]])
+        if isinstance(data.columns[0], tuple):
+            data.columns = data.columns.droplevel()
+        else:
+            data.columns = data.iloc[0]
+            data = data.drop(index=data.index[0])
+        data = data.T
+        data.index.name = '기말'
+        data.index = [
+            idx.replace("(E) : Estimate 컨센서스, 추정치 ", "").replace("(P) : Provisional 잠정실적 ", "")
+            for idx in data.index
+        ]
+        data.columns.name = None
+        data = data.map(self._typecast) \
+            .drop(columns=[col for col in data.columns if "발표기준" in col]) \
+            .rename(columns={col: col[:col.find("(")] if "(" in col else col for col in data.columns})
+        return data
+    
+    def _statement2numbers(self, yy: DataFrame, qq: DataFrame) -> Series:
 
         def __growth(arr: np.ndarray):
             if abs(arr[0]) <= 0.1:
@@ -52,18 +100,6 @@ class FnGuide:
                 return -9999.9998  # 적자 지속
             return round(100 * (arr[-1] - arr[0]) / abs(arr[0]), 2)
 
-        def __separate_confirmed_estimated(st: DataFrame):
-            """
-            잠정 실적(P)이 존재하는 경우 잠정 실적을 확정 실적에 준하여 계산에 사용
-            """
-            _confirmed = st[~st.index.str.contains(r"\(|\)")].copy()
-            _estimated = st[~st.index.isin(_confirmed.index)].copy()
-            if _estimated.index[0].endswith('(P)'):
-                prov = _estimated.iloc[[0]].copy()  # 최근 잠정 실적
-                _confirmed = pd.concat([_confirmed, prov], axis=0)
-                _estimated.drop(index=_estimated.index[0], inplace=True)
-            return _confirmed, _estimated
-
         def __payout_ratio(arr: np.ndarray):
             shares, dps, net_profit = arr
             if net_profit <= 0:
@@ -71,8 +107,8 @@ class FnGuide:
             return round(100 * (1000 * shares) * dps / (net_profit * 1e+8), 2)
 
         # 확정 실적과 추정/잠정 실적 분리
-        confirmed_yy, estimated_yy = __separate_confirmed_estimated(yy)
-        confirmed_qq, _ = __separate_confirmed_estimated(qq)
+        confirmed_yy, estimated_yy = self._separate_confirmed_estimated(yy)
+        confirmed_qq, _ = self._separate_confirmed_estimated(qq)
         trailing = confirmed_qq.iloc[-4:].sum()
 
         # 매출처 이름
@@ -175,41 +211,6 @@ class FnGuide:
 
         return data
 
-    @staticmethod
-    def _typecast(value: str) -> Union[int, float, str]:
-        if str(value) in ['', ' ', '-', 'nan', '완전잠식', "N/A(IFRS)"]:
-            return np.nan
-
-        value = str(value) \
-            .replace(" ", "") \
-            .replace("%", "") \
-            .replace(",", "")
-        if any([c in value for c in ['/', '*']]) or all([c.isalpha() for c in value]):
-            return value
-        value = value.lower()
-        if not any([char.isdigit() for char in value]):
-            return np.nan
-        return float(value) if "." in value or "-" in value else int(value)
-
-    def _src2statement(self, src: DataFrame) -> DataFrame:
-        data = src.set_index(keys=[src.columns[0]])
-        if isinstance(data.columns[0], tuple):
-            data.columns = data.columns.droplevel()
-        else:
-            data.columns = data.iloc[0]
-            data = data.drop(index=data.index[0])
-        data = data.T
-        data.index.name = '기말'
-        data.index = [
-            idx.replace("(E) : Estimate 컨센서스, 추정치 ", "").replace("(P) : Provisional 잠정실적 ", "")
-            for idx in data.index
-        ]
-        data.columns.name = None
-        data = data.map(self._typecast) \
-            .drop(columns=[col for col in data.columns if "발표기준" in col]) \
-            .rename(columns={col: col[:col.find("(")] if "(" in col else col for col in data.columns})
-        return data
-
     @cached_property
     def _snapshot_text(self) -> str:
         return self._fetch(self.URL.SNAPSHOT).text
@@ -231,6 +232,16 @@ class FnGuide:
         else:
             raise IndexError(f"Unexpected number of snapshot tables for {self.ticker}")
         return self._src2statement(self._snapshot_tables[n])
+    
+    @cached_property
+    def annual_statement_confirmed(self) -> DataFrame:
+        confirmed, _ = self._separate_confirmed_estimated(self.annual_statement)
+        return confirmed
+    
+    @cached_property
+    def annual_statement_estimated(self) -> DataFrame:
+        _, estimated = self._separate_confirmed_estimated(self.annual_statement)
+        return estimated
 
     @cached_property
     def annual_statement_separate(self) -> DataFrame:
@@ -281,6 +292,16 @@ class FnGuide:
         else:
             raise IndexError(f"Unexpected number of snapshot tables for {self.ticker}")
         return self._src2statement(self._snapshot_tables[n])
+    
+    @cached_property
+    def quarter_statement_confirmed(self) -> DataFrame:
+        confirmed, _ = self._separate_confirmed_estimated(self.quarter_statement)
+        return confirmed
+    
+    @cached_property
+    def quarter_statement_estimated(self) -> DataFrame:
+        _, estimated = self._separate_confirmed_estimated(self.quarter_statement)
+        return estimated
 
     @cached_property
     def quarter_statement_separate(self) -> DataFrame:
@@ -344,9 +365,10 @@ class FnGuide:
 
 
 if __name__ == "__main__":
-    fng = FnGuide('000660')
+    fng = FnGuide('005930')
     # fng.annual_statement
-    # fng.quarterly_statement
+    # fng.quarter_statement
+    fng.quarter_statement_confirmed
     # fng.snapshot
     # fng.per_band
     # fng.foreign_rate

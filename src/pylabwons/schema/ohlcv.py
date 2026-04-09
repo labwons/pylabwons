@@ -6,12 +6,6 @@ import pandas as pd
 
 class Ohlcv:
 
-    is_bundle = False
-
-    def __new__(cls, ohlcv:DataFrame):
-        cls.is_bundle = isinstance(ohlcv.columns, MultiIndex)
-        return super().__new__(cls)
-
     def __call__(self, *tickers) -> DataFrame:
         if self.is_bundle:
             if len(tickers) == 1:
@@ -49,6 +43,7 @@ class Ohlcv:
     def __init__(self, data:DataFrame, name:str=''):
         self.data = data.copy()
         self.name = name
+        self.is_bundle = isinstance(data.columns, MultiIndex)
         return
 
     def __iter__(self):
