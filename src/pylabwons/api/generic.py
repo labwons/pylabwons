@@ -39,8 +39,7 @@ class Ticker(FnGuide):
     @property
     def annual_market_cap(self) -> Series:
         cap = self.quarterly_market_cap
-        cap = cap[cap.index.str.endswith('4Q') | (cap.index == cap.index[-1])]
-        cap.index = [i.replace('4Q', '12') for i in cap.index]
+        cap = cap[cap.index.str.endswith('12') | (cap.index == cap.index[-1])]
         cap.index.name = "year"
         return cap
 
@@ -63,16 +62,13 @@ class Ticker(FnGuide):
                 (market_cap.index == market_cap.index[-1])
             ]
             market_cap.index = market_cap.index.strftime("%Y/%m")
-            market_cap.index = [
-                col \
-                    .replace("03", "1Q") \
-                    .replace("06", "2Q") \
-                    .replace("09", "3Q") \
-                    .replace("12", "4Q") for col in market_cap.index
-            ]
             market_cap.index.name = "quarter"
             self.__setattr__(_key, Series(index=market_cap.index, data=market_cap['시가총액'] / 1e+8, dtype=int))
         return self.__getattribute__(_key)
+
+    @cached_property
+    def revenue_name(self) -> str:
+        return self.annual_statement.columns[0]
 
     @cached_property
     def snapshot(self) -> Series:
