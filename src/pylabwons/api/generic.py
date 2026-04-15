@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from functools import cached_property
 from pandas import DataFrame, Series
 from pylabwons.core import FnGuide, krx
@@ -9,9 +10,14 @@ class Ticker(FnGuide):
 
     def __init__(self, ticker:str):
         super().__init__(ticker)
-        self.trading_date = TradingDate()
+        self.trading_date = td = TradingDate()
         self.freq = 'd'
-        self.period = 10 # UNIT: YEARS
+        self.period = period = 10 # UNIT: YEARS
+        self.todate = todate = td.latest
+        try:
+            self.fromdate = td - 365 * period
+        except (IndexError, KeyError, Exception):
+            self.fromdate = datetime.strptime(todate, '%Y%m%d') - timedelta(365 * period)
         return
 
     def __getitem__(self, item):
@@ -29,8 +35,8 @@ class Ticker(FnGuide):
     @property
     def ohlcv(self) -> DataFrame:
         kwargs = dict(
-            fromdate=self.trading_date - 365 * self.period,
-            todate=self.trading_date.latest,
+            fromdate=self.fromdate,
+            todate=self.todate,
             ticker=self.ticker,
             freq=self.freq
         )
@@ -38,6 +44,20 @@ class Ticker(FnGuide):
         if not hasattr(self, _key):
             self.__setattr__(_key, krx.get_ohlcv(**kwargs))
         return self.__getattribute__(_key)
+
+    @ohlcv.setter
+    def ohlcv(self, ohlcv:DataFrame):
+        times = ohlcv.index
+        self.fromdate = times[0].strftime('%Y%m%d')
+        self.todate = times[-1].strftime('%Y%m%d')
+        diff = times.diff().days.min()
+        if diff <= 2:
+            self.freq = 'd'
+        else:
+            self.freq = 'm'
+        _key = '_'.join([self.fromdate, self.todate, self.ticker, self.freq])
+        self.__setattr__(_key, ohlcv)
+        return
 
     @property
     def annual_market_cap(self) -> Series:
@@ -81,3 +101,11 @@ class Ticker(FnGuide):
                 engine='pyarrow'
             )
         return globals()['baseline'].loc[self.ticker]
+
+if __name__ == "__main__":
+
+    stock = Ticker('000660')
+    stock.ohlcv = df = pd.read_parquet(r'C:\Users\Administrator\Downloads\sample_ohlcv.parquet', engine='pyarrow')
+    print(stock.ohlcv)
+    print(df)
+    print(df.equals(stock.ohlcv))
