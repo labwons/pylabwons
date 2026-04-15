@@ -14,14 +14,17 @@ class Ticker(FnGuide):
         self.period = 10 # UNIT: YEARS
         return
 
-    def __str__(self) -> str:
-        return str(self.snapshot)
+    def __getitem__(self, item):
+        return self.snapshot[item]
 
     def __repr__(self):
         return repr(self.snapshot)
+
+    def __str__(self) -> str:
+        return str(self.snapshot)
     
     def _repr_html_(self):
-        return self.snapshot.to_frame()._repr_html_()
+        return getattr(self.snapshot.to_frame(), '._repr_html_')()
 
     @property
     def ohlcv(self) -> DataFrame:

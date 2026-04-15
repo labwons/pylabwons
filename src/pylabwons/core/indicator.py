@@ -1,4 +1,6 @@
 from pylabwons.schema import Ohlcv
+from datetime import timedelta
+from scipy.stats import linregress
 import numpy as np
 import pandas as pd
 
@@ -140,6 +142,34 @@ class Indicator(Ohlcv):
         self['rsi'] = rsi
         return
 
+    def add_trend(self, basis:str='tp') -> DataFrame:
+        if not basis in self:
+            basis = 'close'
+
+        def _regression(subdata: Series, newName: str = '') -> Series:
+            newName = newName if newName else subdata.name
+            subdata.index.name = 'date'
+            subdata = subdata.reset_index(level=0)
+            xrange = (subdata['date'].diff()).dt.days.fillna(1).astype(int).cumsum()
+
+            slope, intercept, _, _, _ = linregress(x=xrange, y=subdata[subdata.columns[-1]])
+            fitted = slope * xrange + intercept
+            fitted.name = newName
+            return pd.concat(objs=[subdata, fitted], axis=1).set_index(keys='date')[fitted.name]
+
+        series = self[basis]
+        objs = [_regression(series, 'trend_10y')]
+        for yy in [5, 2, 1, 0.5, 0.25]:
+            col = f"trend_{yy}y" if isinstance(yy, int) else f"trend_{int(yy * 12)}m"
+            date = series.index[-1] - timedelta(int(yy * 365))
+            if series.index[0] > date:
+                self[col] = Series(index=series.index)
+                # objs.append()
+            else:
+                self[col] = _regression(series[series.index >= date], col)
+                # objs.append()
+        return pd.concat(objs, axis=1)
+
     def add_typical_price(self):
         self['tp'] = (self['high'] + self['low'] + self['close']) / 3
         return
@@ -152,3 +182,16 @@ class Indicator(Ohlcv):
         v_roc = (self['volume'] / v_ma.shift(1))
         self["v_roc"] = v_roc
         return
+
+
+if __name__ == "__main__":
+    from pandas import set_option
+    set_option('display.expand_frame_repr', False)
+
+    src = Indicator(
+        pd.read_parquet(r'C:\Users\Administrator\Downloads\sample_ohlcv.parquet', engine='pyarrow')
+    )
+    src.add_typical_price()
+    src.add_trend()
+    print(src)
+    src.to_parquet(r'C:\Users\Administrator\Downloads\sample_ohlcv.parquet', engine='pyarrow')
