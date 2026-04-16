@@ -142,7 +142,7 @@ class Indicator(Ohlcv):
         self['rsi'] = rsi
         return
 
-    def add_trend(self, basis:str='tp') -> DataFrame:
+    def add_trend(self, basis:str='tp'):
         if not basis in self:
             basis = 'close'
 
@@ -168,7 +168,7 @@ class Indicator(Ohlcv):
             else:
                 self[col] = _regression(series[series.index >= date], col)
                 # objs.append()
-        return pd.concat(objs, axis=1)
+        return
 
     def add_typical_price(self):
         self['tp'] = (self['high'] + self['low'] + self['close']) / 3
