@@ -6,7 +6,29 @@ from pylabwons.utils import TradingDate
 import pandas as pd
 
 
+class cached_class_property:
+
+    def __init__(self, fget):
+        self.fget = fget
+
+
+    @property
+    def baseline(cls) -> DataFrame:
+        if _baseline.empty:
+            cls._baseline = pd.read_parquet(
+                'https://github.com/labwons/labwons-manager/raw/refs/heads/main/data/src/baseline.parquet',
+                engine='pyarrow'
+            )
+        return cls._baseline
+
+    @baseline.setter
+    def baseline(cls, baseline:DataFrame):
+        cls._baseline = baseline
+
+
 class Ticker(FnGuide):
+
+    _baseline = None
 
     def __init__(self, ticker:str):
         super().__init__(ticker)
@@ -31,6 +53,19 @@ class Ticker(FnGuide):
     
     def _repr_html_(self):
         return getattr(self.snapshot.to_frame(), '._repr_html_')()
+
+    @property
+    def baseline(self) -> DataFrame:
+        if Ticker._baseline is None:
+            Ticker._baseline = pd.read_parquet(
+                'https://github.com/labwons/labwons-manager/raw/refs/heads/main/data/src/baseline.parquet',
+                engine='pyarrow'
+            )
+        return Ticker._baseline
+
+    @baseline.setter
+    def baseline(self, baseline:DataFrame):
+        Ticker._baseline = baseline
 
     @property
     def ohlcv(self) -> DataFrame:
@@ -95,17 +130,14 @@ class Ticker(FnGuide):
 
     @cached_property
     def snapshot(self) -> Series:
-        if not 'baseline' in globals():
-            globals()['baseline'] = pd.read_parquet(
-                'https://github.com/labwons/labwons-manager/raw/refs/heads/main/data/src/baseline.parquet',
-                engine='pyarrow'
-            )
-        return globals()['baseline'].loc[self.ticker]
+        return self.baseline.loc[self.ticker]
+
 
 if __name__ == "__main__":
 
     stock = Ticker('000660')
-    stock.ohlcv = df = pd.read_parquet(r'C:\Users\Administrator\Downloads\sample_ohlcv.parquet', engine='pyarrow')
-    print(stock.ohlcv)
-    print(df)
-    print(df.equals(stock.ohlcv))
+    print(stock)
+    # stock.ohlcv = df = pd.read_parquet(r'C:\Users\Administrator\Downloads\sample_ohlcv.parquet', engine='pyarrow')
+    # print(stock.ohlcv)
+    # print(df)
+    # print(df.equals(stock.ohlcv))
