@@ -146,16 +146,17 @@ class Indicator(Ohlcv):
         if not basis in self:
             basis = 'close'
 
-        def _regression(subdata: Series, newName: str = '') -> Series:
-            newName = newName if newName else subdata.name
-            subdata.index.name = 'date'
-            subdata = subdata.reset_index(level=0)
-            xrange = (subdata['date'].diff()).dt.days.fillna(1).astype(int).cumsum()
+        def _regression(actual: Series, name: str = '') -> pd.Series:
+            name = name if name else actual.name
+            actual.index.name = 'date'
+            actual = actual.reset_index(level=0)
+            # xrange = (actual['date'].diff()).dt.days.fillna(1).astype(int).cumsum()
+            xrange = pd.Series(data=np.arange(1, len(actual) + 1))
 
-            slope, intercept, _, _, _ = linregress(x=xrange, y=subdata[subdata.columns[-1]])
+            slope, intercept, _, _, _ = linregress(x=xrange, y=actual[actual.columns[-1]])
             fitted = slope * xrange + intercept
-            fitted.name = newName
-            return pd.concat(objs=[subdata, fitted], axis=1).set_index(keys='date')[fitted.name]
+            fitted.name = name
+            return pd.concat(objs=[actual, fitted], axis=1).set_index(keys='date')[fitted.name]
 
         series = self[basis]
         objs = [_regression(series, 'trend_10y')]
@@ -164,10 +165,8 @@ class Indicator(Ohlcv):
             date = series.index[-1] - timedelta(int(yy * 365))
             if series.index[0] > date:
                 self[col] = Series(index=series.index)
-                # objs.append()
             else:
                 self[col] = _regression(series[series.index >= date], col)
-                # objs.append()
         return
 
     def add_typical_price(self):
@@ -191,7 +190,9 @@ if __name__ == "__main__":
     src = Indicator(
         pd.read_parquet(r'C:\Users\Administrator\Downloads\sample_ohlcv.parquet', engine='pyarrow')
     )
-    src.add_typical_price()
+
+    # src.add_typical_price()
     src.add_trend()
-    print(src)
+    # print(src.name)
+    # print(src)
     src.to_parquet(r'C:\Users\Administrator\Downloads\sample_ohlcv.parquet', engine='pyarrow')

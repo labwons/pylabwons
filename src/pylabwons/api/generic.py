@@ -6,26 +6,6 @@ from pylabwons.utils import TradingDate
 import pandas as pd
 
 
-class cached_class_property:
-
-    def __init__(self, fget):
-        self.fget = fget
-
-
-    @property
-    def baseline(cls) -> DataFrame:
-        if _baseline.empty:
-            cls._baseline = pd.read_parquet(
-                'https://github.com/labwons/labwons-manager/raw/refs/heads/main/data/src/baseline.parquet',
-                engine='pyarrow'
-            )
-        return cls._baseline
-
-    @baseline.setter
-    def baseline(cls, baseline:DataFrame):
-        cls._baseline = baseline
-
-
 class Ticker(FnGuide):
 
     _baseline = None
