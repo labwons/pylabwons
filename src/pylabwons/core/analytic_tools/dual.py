@@ -129,10 +129,10 @@ class DualRelation:
 
         fig.add_trace(
             go.Scatter(
-                # x=self.indicator.index,
-                # y=self.indicator,
-                x=self.data.index,
-                y=self.data[name_1],
+                x=self.indicator.index,
+                y=self.indicator,
+                # x=self.data.index,
+                # y=self.data[name_1],
                 name=name_1,
                 line=dict(color=color1),
                 xhoverformat='%Y-%m-%d',
@@ -143,10 +143,10 @@ class DualRelation:
 
         fig.add_trace(
             go.Scatter(
-                # x=self.asset.index,
-                # y=self.asset,
-                x=self.data.index,
-                y=self.data[name_2],
+                x=self.asset.index,
+                y=self.asset,
+                # x=self.data.index,
+                # y=self.data[name_2],
                 name=name_2,
                 line=dict(color=color2),
                 xhoverformat='%Y-%m-%d',
