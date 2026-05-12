@@ -1,6 +1,8 @@
 __all__ = [
-    "trace",
+    "DataDict",
+    "DataDictionary",
     "Ohlcv",
+    "trace",
 ]
 
 from .ohlcv import Ohlcv

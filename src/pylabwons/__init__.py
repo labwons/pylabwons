@@ -3,7 +3,6 @@ __all__ = [
     "CONST",
     "DataDict",
     "DataDictionary",
-    "Detector",
     "FnGuide",
     "login_krx",
     "Logger",
@@ -16,11 +15,12 @@ __all__ = [
     "TradingDate",
 ]
 
-__doc__ = 'hello, pylabwons'
+__doc__ = __str__ = 'hello, pylabwons'
 
 from .api import Ticker
-from .core import BackTester, Detector, Indicator, TickerView
+from .core.analytic_tools import BackTester, DualRelation, Indicator
 from .core.fetch import FnGuide
+from .core.plotly import TickerView
 from .utils import login_krx, Logger, tools, TradingDate
 from .schema import DataDict, DataDictionary, Ohlcv
 from .schema import trace as Trace

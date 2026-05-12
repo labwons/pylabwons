@@ -1,11 +1,11 @@
 from pandas import DataFrame, Series
 from plotly.graph_objs import Figure, Scatter
-from pylabwons.core.detector import Detector
+from pylabwons.core.analytic_tools.indicator import Indicator
 from scipy.stats import norm
 import numpy as np
 
 
-class BackTester(Detector):
+class BackTester(Indicator):
 
     def calc_return(self, n:int ):
         base = self['close'].shift(n - 1)

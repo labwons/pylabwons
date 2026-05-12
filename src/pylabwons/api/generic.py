@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from functools import cached_property
 from pandas import DataFrame, Series
-from pylabwons.core import FnGuide, krx
+from pylabwons.core.fetch import FnGuide, krx
 from pylabwons.utils import TradingDate
 import pandas as pd
 
