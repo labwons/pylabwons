@@ -22,8 +22,11 @@ class DualRelation:
 
         self.unit = unit = 'm' if indicator.index.diff().min().days >= 20 else 'd'
         if unit == 'm':
-            sampler = 'MS' if indicator.index[0].day == 1 else 'ME'
-            self.data = pd.concat([indicator, asset.resample(sampler).last()], axis=1).dropna()
+            if indicator.index[0].day == 1:
+                self.data = pd.concat([indicator, asset.resample('MS').first()], axis=1).dropna()
+            else:
+                self.data = pd.concat([indicator, asset.resample('ME').last()], axis=1).dropna()
+
         else:
             self.data = pd.concat([indicator, asset], axis=1).dropna()
         self.data.columns = [kwargs.get('indicator_name', indicator.name), kwargs.get('asset_name', asset.name)]
@@ -118,8 +121,6 @@ class DualRelation:
 
     def plotly(self, **kwargs):
         name_1, name_2 = self.data.columns
-        s1 = self.data[name_1]
-        s2 = self.data[name_2]
         color1 = kwargs.get('color1', '#1f77b4')  # tab:blue
         color2 = kwargs.get('color2', '#ff7f0e')  # tab:orange
         title = kwargs.get('title', f'{name_1} vs {name_2}')
@@ -128,8 +129,10 @@ class DualRelation:
 
         fig.add_trace(
             go.Scatter(
+                # x=self.indicator.index,
+                # y=self.indicator,
                 x=self.data.index,
-                y=s1,
+                y=self.data[name_1],
                 name=name_1,
                 line=dict(color=color1),
                 xhoverformat='%Y-%m-%d',
@@ -140,8 +143,10 @@ class DualRelation:
 
         fig.add_trace(
             go.Scatter(
-                x=s2.index,
-                y=s2,
+                # x=self.asset.index,
+                # y=self.asset,
+                x=self.data.index,
+                y=self.data[name_2],
                 name=name_2,
                 line=dict(color=color2),
                 xhoverformat='%Y-%m-%d',
@@ -165,6 +170,21 @@ class DualRelation:
 
         return fig
 
+
+# DGS10: 10-Year Treasury Constant Maturity Rate
+# T10Y2Y: 10-Year Treasury Constant Maturity Minus 2-Year Treasury
+# DCOILBRENTEU: Crude Oil Prices: Brent - Europe
+# PCU213111213111: Producer Price Index by Industry: Drilling Oil and Gas Wells
+# BAMLH0A0HYM2: ICE BofA US High Yield Index Option-Adjusted Spread
 if __name__ == "__main__":
     import plotly.io as pio
+
     pio.renderers.default = "vscode"
+
+    # rel = DualRelation(dxy['close'], asset['XLE']['close'])
+    # rel = DualRelation(futures['CL=F']['close'], asset['XLE']['close'], indicator_name='WTI Future', asset_name='XLE')
+    # rel = DualRelation(futures['BZ=F']['close'], asset['XLE']['close'], indicator_name='Brent Future', asset_name='XLE')
+    # rel = DualRelation(others['DCOILBRENTEU'], asset['XLE']['close'])
+    rel = DualRelation(others['PCU213111213111'].dropna(), asset['XLE']['close'], max_lag=6, window_months=24)
+    rel.corr
+    rel.plotly().show()
