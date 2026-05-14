@@ -1,4 +1,4 @@
-from pandas import Series, Index
+from pandas import DataFrame, Series, Index
 from typing import Union
 import numpy as np
 import pandas as pd
@@ -33,28 +33,79 @@ def align_series(indicator: Series, asset: Series):
     # 5. 혹시 모를 초기 결측치(High Freq 데이터의 시작일이 Low Freq보다 늦을 경우) 제거
     return df_aligned.dropna()
 
-def int2krw(krw: Union[int, float], limit:str='억') -> Union[str, float]:
-    """
-    KRW (원화) 입력 시 화폐 표기 법으로 변환(자동 계산)
-    @krw 단위는 원 일 것
-    """
-    if pd.isna(krw) or np.isnan(krw):
-        return np.nan
-    if krw >= 1e+12:
-        krw /= 1e+8
-        currency = f'{int(krw // 10000)}조'
-        if int(krw % 10000):
-            currency += f' {int(krw % 10000)}억'
-        return currency
-    if krw >= 1e+8:
-        krw /= 1e+4
-        currency = f'{int(krw // 10000)}억'
-        if limit == '억':
-            return currency
-        if int(krw % 10000):
-            currency += f' {int(krw % 10000)}만'
-        return currency
-    return f'{int(krw // 10000)}만'
+
+def to_mom_yoy(data:Union[DataFrame, Series], fill_method='ffill', tolerance_days=None) -> DataFrame:
+    df_origin = data.to_frame(name='Value') if isinstance(data, pd.Series) else data.copy()
+
+    if not isinstance(df_origin.index, pd.DatetimeIndex):
+        df_origin.index = pd.to_datetime(df_origin.index)
+    df_origin = df_origin.sort_index()
+
+    # 1. 결측치(NaN) 보간 처리
+    df_filled = df_origin.copy()
+    if fill_method == 'time_linear':
+        df_filled = df_filled.interpolate(method='time')
+    elif fill_method == 'ffill':
+        df_filled = df_filled.ffill()
+    elif fill_method == 'bfill':
+        df_filled = df_filled.bfill()
+
+    # 2. 데이터 간격(Gap) 측정 및 가변형 Tolerance(허용오차) 설정
+    # 원본 데이터 간격 평균을 구합니다 (Baker Hughes 데이터의 실제 간격 반영)
+    avg_gap = pd.Series(df_origin.index).diff().mean().days
+
+    if tolerance_days is None:
+        if avg_gap <= 2:  # Daily
+            tolerance_days = 2
+        elif avg_gap <= 9:  # Weekly
+            tolerance_days = 4
+        elif avg_gap <= 18:  # Bi-weekly
+            tolerance_days = 8
+        else:  # Monthly
+            tolerance_days = 16
+
+    # 3. 기준 과거 날짜 매칭용 데이터프레임 생성
+    df_filled.index.name = 'index'
+    df_idx = df_filled.reset_index()
+    df_idx['date_1m_ago'] = df_idx['index'] - pd.DateOffset(months=1)
+    df_idx['date_1y_ago'] = df_idx['index'] - pd.DateOffset(years=1)
+
+    df_base = df_idx[['index'] + list(df_filled.columns)].copy()
+
+    # 4. direction='nearest' 설정을 통해 타깃일 전후로 가장 가까운 실제 데이터 매칭
+    mom_matched = pd.merge_asof(
+        df_idx[['index', 'date_1m_ago']], df_base,
+        left_on='date_1m_ago', right_on='index',
+        direction='nearest', suffixes=('', '_prev'),
+        tolerance=pd.Timedelta(days=tolerance_days)
+    )
+
+    yoy_matched = pd.merge_asof(
+        df_idx[['index', 'date_1y_ago']], df_base,
+        left_on='date_1y_ago', right_on='index',
+        direction='nearest', suffixes=('', '_prev'),
+        tolerance=pd.Timedelta(days=tolerance_days)
+    )
+
+    # 5. 성장률 계산 ((현재값 - 과거값) / 과거값 * 100)
+    res_df = pd.DataFrame(index=df_origin.index)
+    for col in df_filled.columns:
+        curr_val = df_filled[col].values
+        prev_1m = mom_matched[col].values
+        prev_1y = yoy_matched[col].values
+
+        # 0 나누기 오류 및 NaN 전파 방지 처리
+        res_df[f'MoM'] = np.where(
+            (prev_1m > 0) & (~np.isnan(prev_1m)),
+            ((curr_val - prev_1m) / prev_1m) * 100, np.nan
+        )
+        res_df[f'YoY'] = np.where(
+            (prev_1y > 0) & (~np.isnan(prev_1y)),
+            ((curr_val - prev_1y) / prev_1y) * 100, np.nan
+        )
+
+    result = pd.concat([df_origin, res_df], axis=1)
+    return result.rename(columns={'Value': data.name})
 
 def detect_frequency(series: Union[Index, Series]):
     """
@@ -113,3 +164,27 @@ def detect_frequency(series: Union[Index, Series]):
 
     else:
         raise ValueError('Unable to detect frequency')
+
+
+def int2krw(krw: Union[int, float], limit:str='억') -> Union[str, float]:
+    """
+    KRW (원화) 입력 시 화폐 표기 법으로 변환(자동 계산)
+    @krw 단위는 원 일 것
+    """
+    if pd.isna(krw) or np.isnan(krw):
+        return np.nan
+    if krw >= 1e+12:
+        krw /= 1e+8
+        currency = f'{int(krw // 10000)}조'
+        if int(krw % 10000):
+            currency += f' {int(krw % 10000)}억'
+        return currency
+    if krw >= 1e+8:
+        krw /= 1e+4
+        currency = f'{int(krw // 10000)}억'
+        if limit == '억':
+            return currency
+        if int(krw % 10000):
+            currency += f' {int(krw % 10000)}만'
+        return currency
+    return f'{int(krw // 10000)}만'
