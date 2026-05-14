@@ -1,3 +1,4 @@
+from pylabwons.utils import tools
 from pandas import DataFrame, Series
 from plotly.subplots import make_subplots
 import numpy as np
@@ -20,31 +21,44 @@ class DualRelation:
             indicator.name = 'indicator'
             asset.name = 'asset'
 
-        self.unit = unit = 'm' if indicator.index.diff().min().days >= 20 else 'd'
-        if unit == 'm':
-            if indicator.index[0].day == 1:
-                self.data = pd.concat([indicator, asset.resample('MS').first()], axis=1).dropna()
-            else:
-                self.data = pd.concat([indicator, asset.resample('ME').last()], axis=1).dropna()
-
-        else:
-            self.data = pd.concat([indicator, asset], axis=1).dropna()
+        self.data = tools.align_series(indicator, asset)
+        self.unit = tools.detect_frequency(indicator.index)
         self.data.columns = [kwargs.get('indicator_name', indicator.name), kwargs.get('asset_name', asset.name)]
-        self.window = kwargs.get('window', 6 if unit == 'd' else 24)
-        self.max_lag = kwargs.get('max_lag', 20 if unit == 'd' else 6)
         return
 
-    @property
-    def corr(self) -> DataFrame:
+    def corr(self, window: dict = None, max_lag: int = None) -> DataFrame:
         """
         두 시계열 데이터(a, b) 간의 시차 상관계수(CCF)를 계산하여 선/후행 관계를 분석하는 함수
 
         * NOTE
         데이터 변환       : 데이터를 로그 수익률로 변환, 시계열의 안정성(Stationarity) 확보
-        슬라이딩 윈도우   : window_months 만큼 rolling하여 분석, 시간에 따른 자산 간 관계 변형 포착
+        슬라이딩 윈도우   : window 만큼 rolling하여 분석, 시간에 따른 자산 간 관계 변형 포착
         CCF(교차 상관계수): ts.ccf를 이용해 A가 n일 전/후의 움직임으로 B를 얼마나 설명하는지 수치화
         우세 관계 판별    : 선행, 후행, 동행 지표 중 절댓값이 가장 큰 항목으로 해당 시계열의 두 자산의 관계 정의
         """
+        if window is None:
+            if self.unit == 'd':
+                window = {'months': 6}
+            elif self.unit == 'w':
+                window = {'months': 12}
+            elif self.unit == 'bw':
+                window = {'months': 12}
+            else:
+                window = {'months': 24}
+        if max_lag is None:
+            if self.unit == 'd':
+                max_lag = 30
+            elif self.unit == 'w':
+                max_lag = 4
+            elif self.unit == 'bw':
+                max_lag = 4
+            else:
+                max_lag = 1
+
+        h_window = {}
+        for k, v in window.items():
+            h_window[k] = max(1, v // 2)
+
         k1, k2 = self.data.columns
         df_ret = np.log(self.data / self.data.shift(1)).dropna()
         if df_ret.empty:
@@ -59,19 +73,19 @@ class DualRelation:
         first_date = available_dates[0]
 
         expanding_corr = self.data[k1].expanding().corr(self.data[k2])
-        while curr_end >= first_date + pd.DateOffset(months=self.window):
-            curr_start = curr_end - pd.DateOffset(months=self.window)
+        while curr_end >= first_date + pd.DateOffset(**window):
+            curr_start = curr_end - pd.DateOffset(**window)
 
             # 윈도우 슬라이싱 (인덱스 범위 기반)
-            period_ret = df_ret.loc[curr_start:curr_end]
+            period_ret = df_ret[(df_ret.index >= curr_start) & (df_ret.index <= curr_end)]
 
-            if len(period_ret) > 3 * self.max_lag:
+            if len(period_ret) > 3 * max_lag:
                 ser_a = period_ret[k1]
                 ser_b = period_ret[k2]
 
                 # --- CCF 분석 ---
-                ccf_a_leads_b = ts.ccf(ser_a, ser_b, adjusted=True)[:self.max_lag + 1]
-                ccf_b_leads_a = ts.ccf(ser_b, ser_a, adjusted=True)[:self.max_lag + 1]
+                ccf_a_leads_b = ts.ccf(ser_a, ser_b, adjusted=True)[:max_lag + 1]
+                ccf_b_leads_a = ts.ccf(ser_b, ser_a, adjusted=True)[:max_lag + 1]
 
                 sync = ccf_a_leads_b[0]
                 leading_vals = ccf_a_leads_b[1:]
@@ -113,9 +127,13 @@ class DualRelation:
                 results.append(result)
                 indices.append(f"{curr_start.strftime('%Y/%m')}-{curr_end.strftime('%Y/%m')}")  # 인덱스를 종료일자로 명확히 표기
 
-            curr_end = curr_end - pd.DateOffset(months=int(self.window / 2))
-            if curr_end >= first_date:
-                curr_end = available_dates[available_dates <= curr_end][-1]
+            curr_end = curr_end - pd.DateOffset(**h_window)
+
+            valid_dates = available_dates[available_dates <= curr_end]
+            if not valid_dates.empty:
+                curr_end = valid_dates[-1]
+            else:
+                break
 
         return DataFrame(results, index=indices)
 
@@ -125,7 +143,7 @@ class DualRelation:
         color2 = kwargs.get('color2', '#ff7f0e')  # tab:orange
         title = kwargs.get('title', f'{name_1} vs {name_2}')
 
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig = make_subplots(shared_xaxes=True, specs=[[{"secondary_y": True}]])
 
         fig.add_trace(
             go.Scatter(
@@ -167,24 +185,9 @@ class DualRelation:
         # 축 이름 설정
         fig.update_yaxes(title_text=name_1, color=color1, secondary_y=False)
         fig.update_yaxes(title_text=name_2, color=color2, secondary_y=True)
+        fig.update_xaxes(range=[max(self.indicator.index[0], self.asset.index[0]),
+                                max(self.indicator.index[-1], self.asset.index[-1])],
+        )
 
         return fig
 
-
-# DGS10: 10-Year Treasury Constant Maturity Rate
-# T10Y2Y: 10-Year Treasury Constant Maturity Minus 2-Year Treasury
-# DCOILBRENTEU: Crude Oil Prices: Brent - Europe
-# PCU213111213111: Producer Price Index by Industry: Drilling Oil and Gas Wells
-# BAMLH0A0HYM2: ICE BofA US High Yield Index Option-Adjusted Spread
-if __name__ == "__main__":
-    import plotly.io as pio
-
-    pio.renderers.default = "vscode"
-
-    # rel = DualRelation(dxy['close'], asset['XLE']['close'])
-    # rel = DualRelation(futures['CL=F']['close'], asset['XLE']['close'], indicator_name='WTI Future', asset_name='XLE')
-    # rel = DualRelation(futures['BZ=F']['close'], asset['XLE']['close'], indicator_name='Brent Future', asset_name='XLE')
-    # rel = DualRelation(others['DCOILBRENTEU'], asset['XLE']['close'])
-    rel = DualRelation(others['PCU213111213111'].dropna(), asset['XLE']['close'], max_lag=6, window_months=24)
-    rel.corr
-    rel.plotly().show()
