@@ -3,8 +3,10 @@ __all__ = [
     "DataDictionary",
     "Ohlcv",
     "trace",
+    "TimeSeriesSlicer",
 ]
 
-from .ohlcv import Ohlcv
 from . import trace
 from .datadict import DataDictionary, DataDict
+from .ohlcv import Ohlcv
+from .timeseries import TimeSeriesSlicer
