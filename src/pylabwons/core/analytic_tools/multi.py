@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 
 
 class MultiAssetRelation:
+
     def __init__(self, ohlcv: DataFrame, basis: str = ''):
         self.ohlcv = ohlcv
         self.basis = ohlcv.columns[0] if not basis else basis
@@ -25,7 +26,7 @@ class MultiAssetRelation:
             objs[period] = df / df.cummax() - 1
         return round(100 * pd.concat(objs, axis=1), 2)
 
-    def plotly_multi(self, value_type: str = 'cummulative_return'):
+    def plotly_multi(self, value_type: str = 'cumulative_return'):
         df = getattr(self, value_type)
         fig = go.Figure()
 
