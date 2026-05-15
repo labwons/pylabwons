@@ -3,6 +3,7 @@ from datetime import datetime
 from pandas import DataFrame
 import requests, time
 import pandas as pd
+import yfinance as yf
 
 def baker_hughes_rig_count(*years, **kwargs) -> DataFrame:
     """
@@ -85,9 +86,9 @@ def baker_hughes_rig_count(*years, **kwargs) -> DataFrame:
     df.index = pd.to_datetime(df.index)
     return df.sort_index()
 
-def crude_oil_stocks() -> DataFrame:
+def eia() -> pd.DataFrame:
     """
-    EIA(미국 에너지정보청) 공식 웹사이트에서 원유 재고 데이터를 실시간으로 읽어와 병합합니다.
+    EIA(미국 에너지정보청) 공식 웹사이트에서 원유 재고 등 데이터를 읽어와 병합합니다.
 
     Returns:
         DataFrame: 미국 상업용 원유 재고('Commercial')와 전략비축유('SPR') 데이터를
@@ -105,13 +106,36 @@ def crude_oil_stocks() -> DataFrame:
         skiprows=2
     ).set_index('Date')
 
-    data = pd.concat([commercial, spr], axis=1)
-    data.columns = ['Commercial', 'SPR']
+    util = pd.read_excel(
+        # 'https://www.eia.gov/dnav/pet/hist_xls/MOPUEUS2m.xls',
+        'https://www.eia.gov/dnav/pet/hist_xls/WPULEUS3w.xls',
+        sheet_name='Data 1',
+        skiprows=2
+    ).set_index('Date')
+
+    data = pd.concat([commercial, spr, util], axis=1)
+    data.columns = ['commercial_stocks', 'SPR_stocks', 'utilization_rate']
     return data
+
+def crack_spread(year:int=10) -> pd.Series:
+    today = datetime.now()
+    tickers = ["CL=F", "RB=F", "HO=F"]
+    data = yf.download(tickers, start=datetime(today.year - year, today.month, today.day))['Close']
+
+    # 2. 3-2-1 크랙 스프레드 계산 (단위 환산 및 3:2:1 비율 적용)
+    # RB=F와 HO=F는 센트(Cent) 단위가 아닌 달러(Dollar) 단위로 들어오므로 바로 42를 곱합니다.
+    gasoline_bbl = data['RB=F'] * 42
+    diesel_bbl = data['HO=F'] * 42
+    crude_bbl = data['CL=F']
+
+    data['crack_spread'] = ((gasoline_bbl * 2) + (diesel_bbl * 1) - (crude_bbl * 3)) / 3
+
+    # 결측치 제거 후 확인
+    return data['crack_spread'].dropna()
 
 
 if __name__ == "__main__":
 
     # print(baker_hughes_rig_count(2026, verify=False))
     # print(baker_hughes_rig_count())
-    print(crude_oil_stocks())
+    print(eia())
