@@ -82,7 +82,7 @@ class MultiAssetRelation:
                 xanchor="right",
                 x=1
             ),
-            hovermode="x unified",
+            hovermode="x",
             updatemenus=[
                 dict(
                     buttons=buttons,
@@ -97,6 +97,11 @@ class MultiAssetRelation:
             yaxis_title="[%]",
             xaxis=dict(
                 tickformat="%Y-%m-%d",
+                showspikes=True,  # Spike line 표시 여부
+                spikethickness=0.8,  # 선 두께
+                spikedash="dash",  # 선 스타일 (dash, dot, solid 등)
+                spikemode="across",  # 선이 데이터 포인트에서 어디까지 뻗어 나갈지 (across는 축 전체)
+                spikesnap="cursor"  # 커서 위치 또는 데이터 포인트 중 어디에 고정할지 (cursor/data)
             )
         )
         return fig
