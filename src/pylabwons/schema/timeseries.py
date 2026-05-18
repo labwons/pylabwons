@@ -1,3 +1,4 @@
+from pylabwons.utils.tools import to_mom_yoy
 from dateutil.relativedelta import relativedelta
 from pandas import DataFrame, Series
 from plotly.subplots import make_subplots
@@ -29,7 +30,7 @@ class TimeSeries(Series):
     @property
     def mom(self):
         if self._mom_yoy.empty:
-            self._mom_yoy = lw.tools.to_mom_yoy(self)
+            self._mom_yoy = to_mom_yoy(self)
         return TimeSeries(self._mom_yoy['MoM'], name=f'{self.name}(MoM)', unit='%')
 
     @property
@@ -43,7 +44,7 @@ class TimeSeries(Series):
     @property
     def yoy(self):
         if self._mom_yoy.empty:
-            self._mom_yoy = lw.tools.to_mom_yoy(self)
+            self._mom_yoy = to_mom_yoy(self)
         return TimeSeries(self._mom_yoy['YoY'], name=f'{self.name}(YoY)', unit='%')
 
     def ma(self, window: int):
