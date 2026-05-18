@@ -1,6 +1,7 @@
 from pylabwons.utils import tools
 from pandas import DataFrame, Series
 from plotly.subplots import make_subplots
+from typing import Union
 import numpy as np
 import pandas as pd
 import statsmodels.tsa.stattools as ts
@@ -9,21 +10,19 @@ import plotly.graph_objects as go
 
 class DualRelation:
 
-    def __init__(
-            self,
-            indicator: Series,
-            asset: Series,
-            **kwargs
-    ):
-        self.indicator = indicator
-        self.asset = asset
-        if indicator.name == asset.name:
-            indicator.name = 'indicator'
-            asset.name = 'asset'
+    def __init__(self, y1:Union[Series, TimeSeries], y2:Union[Series, TimeSeries], **kwargs):
+        if isinstance(y1, Series):
+            y1 = TimeSeries(y1)
+        if isinstance(y2, Series):
+            y2 = TimeSeries(y2)
+        self.y1, self.y2 = y1, y2
 
-        self.data = tools.align_series(indicator, asset)
-        self.unit = tools.detect_frequency(indicator.index)
-        self.data.columns = [kwargs.get('indicator_name', indicator.name), kwargs.get('asset_name', asset.name)]
+        if y1.name == y2.name:
+            y1.name, y2.name = 'y1', 'y2'
+
+        self.data = tools.align_series(y1, y2)
+        self.unit = tools.detect_frequency(y1.index)
+        self.data.columns = [kwargs.get('y1_name', y1.name), kwargs.get('y2_name', y2.name)]
         return
 
     def corr(self, window: dict = None, max_lag: int = None) -> DataFrame:
@@ -137,56 +136,55 @@ class DualRelation:
 
         return DataFrame(results, index=indices)
 
-    def plotly(self, **kwargs):
-        name_1, name_2 = self.data.columns
-        color1 = kwargs.get('color1', '#1f77b4')  # tab:blue
-        color2 = kwargs.get('color2', '#ff7f0e')  # tab:orange
-        title = kwargs.get('title', f'{name_1} vs {name_2}')
+    def show(self, **kwargs):
 
-        fig = make_subplots(shared_xaxes=True, specs=[[{"secondary_y": True}]])
+        fig = make_subplots(shared_xaxes=True, specs=[[{"secondary_y": True, "r":-0.06}]])
+        fig.add_trace(self.y1.trace(), secondary_y=False)
+        fig.add_trace(self.y2.trace(), secondary_y=True)
+        fig.add_trace(self.y1.mom.trace(visible=False), secondary_y=False)
+        fig.add_trace(self.y2.mom.trace(visible=False), secondary_y=True)
+        fig.add_trace(self.y1.yoy.trace(visible=False), secondary_y=False)
+        fig.add_trace(self.y2.yoy.trace(visible=False), secondary_y=True)
 
-        fig.add_trace(
-            go.Scatter(
-                x=self.indicator.index,
-                y=self.indicator,
-                # x=self.data.index,
-                # y=self.data[name_1],
-                name=name_1,
-                line=dict(color=color1),
-                xhoverformat='%Y-%m-%d',
-                hovertemplate=f'{name_1}: %{{y}}<extra></extra>'
-            ),
-            secondary_y=False,
-        )
+        buttons = []
+        for button in ['Raw', 'MoM', 'YoY']:
+            visibility = []
+            label = button
+            for trace in fig.data:
+                cat = 'MoM' if 'MoM' in trace.name else 'YoY' if 'YoY' in trace.name else 'Raw'
+                visibility.append(label == cat)
+            buttons.append({
+                'label': label,
+                'method': 'update',
+                'args': [{'visible': visibility}]
+            })
 
-        fig.add_trace(
-            go.Scatter(
-                x=self.asset.index,
-                y=self.asset,
-                # x=self.data.index,
-                # y=self.data[name_2],
-                name=name_2,
-                line=dict(color=color2),
-                xhoverformat='%Y-%m-%d',
-                hovertemplate=f'{name_2}: %{{y}}<extra></extra>'
-            ),
-            secondary_y=True,
-        )
 
         # 3. 레이아웃 업데이트 (다크 모드 및 스타일)
         fig.update_layout(
-            title_text=title,
-            height=700,
+            title_text=kwargs.get('title', f'{self.y1.name} vs {self.y2.name}'),
+            height=kwargs.get('height', 600),
             template='plotly_dark',
             hovermode='x unified',  # 마우스 오버 시 두 데이터 동시에 표시
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    direction="down",
+                    showactive=True,
+                    x=0.01,  # 왼쪽 상단 위치
+                    xanchor="left",
+                    y=1.05,
+                    yanchor="top",
+                )
+            ],
         )
 
         # 축 이름 설정
-        fig.update_yaxes(title_text=name_1, color=color1, secondary_y=False)
-        fig.update_yaxes(title_text=name_2, color=color2, secondary_y=True)
-        fig.update_xaxes(range=[max(self.indicator.index[0], self.asset.index[0]),
-                                max(self.indicator.index[-1], self.asset.index[-1])],
+        fig.update_yaxes(title_text=self.y1.name, secondary_y=False)
+        fig.update_yaxes(title_text=self.y2.name, showgrid=False, zeroline=False, secondary_y=True)
+        fig.update_xaxes(range=[max(self.y1.index[0], self.y2.index[0]),
+                                max(self.y1.index[-1], self.y2.index[-1])],
         )
 
         return fig

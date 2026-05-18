@@ -1,6 +1,81 @@
 from dateutil.relativedelta import relativedelta
-from pandas import DataFrame
+from pandas import DataFrame, Series
+from plotly.subplots import make_subplots
 import pandas as pd
+import plotly.graph_objects as go
+
+
+class TimeSeries(Series):
+    _metadata = ['_mom_yoy', '_unit', '_is_mom_yoy']
+
+    def __init__(self, series: Series, **kwargs):
+        super().__init__(
+            index=series.index,
+            data=series.values,
+            name=kwargs.get('name', series.name),
+            dtype=kwargs.get('dtype', series.dtype)
+        )
+        self._mom_yoy = DataFrame()
+        self._unit = kwargs.get('unit', '')
+        self._is_mom_yoy = 'MoM' in str(self.name) or 'YoY' in str(self.name)
+        if self.index.tz:
+            self.index = series.index.tz_localize(None)
+        return
+
+    @property
+    def _constructor(self):
+        return TimeSeries
+
+    @property
+    def mom(self):
+        if self._mom_yoy.empty:
+            self._mom_yoy = lw.tools.to_mom_yoy(self)
+        return TimeSeries(self._mom_yoy['MoM'], name=f'{self.name}(MoM)', unit='%')
+
+    @property
+    def unit(self) -> str:
+        return self._unit
+
+    @unit.setter
+    def unit(self, unit: str):
+        self._unit = unit
+
+    @property
+    def yoy(self):
+        if self._mom_yoy.empty:
+            self._mom_yoy = lw.tools.to_mom_yoy(self)
+        return TimeSeries(self._mom_yoy['YoY'], name=f'{self.name}(YoY)', unit='%')
+
+    def ma(self, window: int):
+        return TimeSeries(self.rolling(window=window).mean(), name=f'{self.name}({window})', unit=self.unit)
+
+    def show(self, **kwargs) -> go.Figure:
+        fig = make_subplots(shared_xaxes=True, specs=[[{"secondary_y": True, "r": -0.06}]])
+        fig.update_layout(
+            height=kwargs.get('height', 600),
+            template=kwargs.get('template', 'plotly_dark'),
+            hovermode=kwargs.get('hovermode', 'x unified'),
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+            yaxis2=dict(showgrid=False, zeroline=False)
+        )
+        fig.add_trace(self.trace(), secondary_y=False)
+        if not self._is_mom_yoy:
+            fig.add_trace(self.mom.trace(visible='legendonly'), secondary_y=True)
+            fig.add_trace(self.yoy.trace(visible='legendonly'), secondary_y=True)
+        return fig
+
+    def trace(self, **kwargs) -> go.Scatter:
+        trace = go.Scatter(
+            name=self.name,
+            x=self.index,
+            y=self.values,
+            mode='lines',
+            showlegend=True,
+            xhoverformat='%Y-%m-%d',
+            hovertemplate=f'{self.name}: %{{y}}{self.unit}<extra></extra>'
+        )
+        trace.update(kwargs)
+        return trace
 
 
 class TimeSeriesSlicer:

@@ -12,6 +12,7 @@ __all__ = [
     "Ohlcv",
     "Ticker",
     "TickerView",
+    "TimeSeries",
     "TimeSeriesSlicer",
     "tools",
     "Trace",
@@ -26,6 +27,6 @@ from .core import fetch
 from .core.fetch import FnGuide
 from .core.plotly import TickerView
 from .utils import login_krx, Logger, tools, TradingDate
-from .schema import DataDict, DataDictionary, Ohlcv, TimeSeriesSlicer
+from .schema import DataDict, DataDictionary, Ohlcv, TimeSeries, TimeSeriesSlicer
 from .schema import trace as Trace
 from . import constants as CONST
