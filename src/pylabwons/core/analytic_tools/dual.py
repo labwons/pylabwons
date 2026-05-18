@@ -1,4 +1,5 @@
 from pylabwons.utils import tools
+from pylabwons.schema.timeseries import TimeSeries
 from pandas import DataFrame, Series
 from plotly.subplots import make_subplots
 from typing import Union
